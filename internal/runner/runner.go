@@ -1,5 +1,15 @@
 package runner
 
-func Execute(cmd string) string {
-	return "executing: " + cmd
+import (
+	"os/exec"
+
+	"github.com/TirthBora/catalyst/internal/project"
+)
+
+func New(proj *project.Project) *exec.Cmd {
+	return exec.Command(
+		"go",
+		"run",
+		proj.EntryPoint,
+	)
 }
