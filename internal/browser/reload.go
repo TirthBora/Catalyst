@@ -64,3 +64,15 @@ func (r *Reloader) Notify() {
 		}
 	}
 }
+func (r *Reloader) Start(addr string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/__catalyst/events", r.Handler)
+
+	go func() {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			// Version 1: ignore server shutdown errors.
+		}
+	}()
+
+	return nil
+}
