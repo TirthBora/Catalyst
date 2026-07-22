@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TirthBora/catalyst/internal/browser"
+	"github.com/TirthBora/catalyst/internal/config"
 	"github.com/TirthBora/catalyst/internal/process"
 	"github.com/TirthBora/catalyst/internal/project"
 	"github.com/TirthBora/catalyst/internal/runner"
@@ -15,6 +16,7 @@ import (
 )
 
 func Run() error {
+	cfg := config.Default()
 	proj, err := project.Detect()
 	if err != nil {
 		return fmt.Errorf("detect project: %w", err)
@@ -32,10 +34,12 @@ func Run() error {
 
 	fmt.Println("Opening browser...")
 
-	if err := browser.Open("http://localhost:8080"); err != nil {
-		fmt.Println("Browser error:", err)
-	} else {
-		fmt.Println("Browser opened successfully.")
+	if cfg.Browser.Open {
+		url := fmt.Sprintf("http://localhost:%d", cfg.Server.Port)
+
+		if err := browser.Open(url); err != nil {
+			fmt.Println("Failed to open browser:", err)
+		}
 	}
 
 	reloader := browser.NewReloader()
@@ -80,7 +84,7 @@ func Run() error {
 				}
 			}
 
-			timer.Reset(200 * time.Millisecond)
+			timer.Reset(cfg.Watcher.Debounce)
 
 		case <-timer.C:
 			if !pending {
