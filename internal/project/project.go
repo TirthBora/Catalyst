@@ -15,14 +15,20 @@ type Project struct {
 	EntryPoint string
 }
 
-// Detect discovers information about the current Go project.
+// Detect discovers information about the current working directory.
 func Detect() (*Project, error) {
 	root, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("get working directory: %w", err)
 	}
 
+	return DetectFrom(root)
+}
+
+// DetectFrom discovers information about a Go project rooted at the given path.
+func DetectFrom(root string) (*Project, error) {
 	goModPath := filepath.Join(root, "go.mod")
+
 	if _, err := os.Stat(goModPath); err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("go.mod not found")
@@ -100,13 +106,10 @@ func findEntryPoint(root string) (string, error) {
 			return candidates[0], nil
 
 		case 0:
-			// fall through and check project root
+			// Fall back to checking the project root.
 
 		default:
-			return "", fmt.Errorf(
-				"multiple entry points found: %v",
-				candidates,
-			)
+			return "", fmt.Errorf("multiple entry points found: %v", candidates)
 		}
 	}
 

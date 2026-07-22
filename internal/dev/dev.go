@@ -32,6 +32,11 @@ func Run() error {
 
 	// Ignore browser errors in Version 1.
 	_ = browser.Open("http://localhost:8080")
+	reloader := browser.NewReloader()
+
+	if err := reloader.Start(":35729"); err != nil {
+		return fmt.Errorf("start reload serever :%w", err)
+	}
 
 	w, err := watcher.New()
 	if err != nil {
@@ -84,7 +89,9 @@ func Run() error {
 
 			if err := manager.Restart(cmd); err != nil {
 				fmt.Println("Restart failed:", err)
+				continue
 			}
+			reloader.Notify()
 
 		case <-sig:
 			fmt.Println("\nShutting down Catalyst...")
