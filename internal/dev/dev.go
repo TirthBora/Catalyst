@@ -61,7 +61,7 @@ func Run() error {
 
 			pending = true
 
-			// Safe timer reset.
+			// Safely reset the debounce timer.
 			if !timer.Stop() {
 				select {
 				case <-timer.C:
@@ -72,16 +72,18 @@ func Run() error {
 			timer.Reset(200 * time.Millisecond)
 
 		case <-timer.C:
-			if pending {
-				pending = false
+			if !pending {
+				continue
+			}
 
-				fmt.Println("Restarting...")
+			pending = false
 
-				cmd := runner.Command(proj)
+			fmt.Println("Restarting...")
 
-				if err := manager.Restart(cmd); err != nil {
-					fmt.Println("Restart failed:", err)
-				}
+			cmd := runner.Command(proj)
+
+			if err := manager.Restart(cmd); err != nil {
+				fmt.Println("Restart failed:", err)
 			}
 
 		case <-sig:
