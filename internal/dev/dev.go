@@ -30,12 +30,18 @@ func Run() error {
 	// Give the application a moment to start before opening the browser.
 	time.Sleep(500 * time.Millisecond)
 
-	// Ignore browser errors in Version 1.
-	_ = browser.Open("http://localhost:8080")
+	fmt.Println("Opening browser...")
+
+	if err := browser.Open("http://localhost:8080"); err != nil {
+		fmt.Println("Browser error:", err)
+	} else {
+		fmt.Println("Browser opened successfully.")
+	}
+
 	reloader := browser.NewReloader()
 
 	if err := reloader.Start(":35729"); err != nil {
-		return fmt.Errorf("start reload serever :%w", err)
+		return fmt.Errorf("start reload server: %w", err)
 	}
 
 	w, err := watcher.New()
@@ -91,6 +97,7 @@ func Run() error {
 				fmt.Println("Restart failed:", err)
 				continue
 			}
+
 			reloader.Notify()
 
 		case <-sig:
