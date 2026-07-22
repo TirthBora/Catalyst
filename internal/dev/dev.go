@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/TirthBora/catalyst/internal/process"
 	"github.com/TirthBora/catalyst/internal/project"
@@ -37,16 +38,30 @@ func Run() error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	var (
+		pending bool
+		timer   = time.NewTimer(time.Hour)
+	)
 
+	timer.Stop()
 	for {
 		select {
 		case file := <-w.Events:
 			fmt.Println("Changed:", file)
 
-			cmd := runner.Command(proj)
+			pending = true
 
-			if err := manager.Restart(cmd); err != nil {
-				fmt.Println("Restart failed:", err)
+			timer.Reset(200 * time.Millisecond)
+
+		case <-timer.C:
+			if pending {
+				pending = false
+
+				cmd := runner.Command(proj)
+
+				if err := manager.Restart(cmd); err != nil {
+					fmt.Println(err)
+				}
 			}
 
 		case <-sig:
