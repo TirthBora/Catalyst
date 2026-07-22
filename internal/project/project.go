@@ -72,20 +72,48 @@ func readModuleName(goModPath string) (string, error) {
 }
 
 func findEntryPoint(root string) (string, error) {
-	candidates := []string{
-		"cmd/server/main.go",
-		"cmd/app/main.go",
-		"cmd/main.go",
-		"main.go",
-	}
+	// First, look inside the cmd directory.
+	cmdDir := filepath.Join(root, "cmd")
 
-	for _, candidate := range candidates {
-		path := filepath.Join(root, candidate)
+	if info, err := os.Stat(cmdDir); err == nil && info.IsDir() {
+		entries, err := os.ReadDir(cmdDir)
+		if err != nil {
+			return "", fmt.Errorf("read cmd directory: %w", err)
+		}
 
-		if _, err := os.Stat(path); err == nil {
-			return candidate, nil
+		var candidates []string
+
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+
+			mainFile := filepath.Join("cmd", entry.Name(), "main.go")
+
+			if _, err := os.Stat(filepath.Join(root, mainFile)); err == nil {
+				candidates = append(candidates, mainFile)
+			}
+		}
+
+		switch len(candidates) {
+		case 1:
+			return candidates[0], nil
+
+		case 0:
+			// fall through and check project root
+
+		default:
+			return "", fmt.Errorf(
+				"multiple entry points found: %v",
+				candidates,
+			)
 		}
 	}
 
-	return "", fmt.Errorf("no supported entry point found")
+	// Fallback: root/main.go
+	if _, err := os.Stat(filepath.Join(root, "main.go")); err == nil {
+		return "main.go", nil
+	}
+
+	return "", fmt.Errorf("no Go entry point found")
 }
