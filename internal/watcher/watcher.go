@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
@@ -49,7 +50,26 @@ func (w *Watcher) run() {
 }
 
 func (w *Watcher) Watch(root string) error {
-	return w.fs.Add(root)
+	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() {
+			return nil
+		}
+
+		switch d.Name() {
+		case ".git", "vendor":
+			return filepath.SkipDir
+		}
+
+		if len(d.Name()) > 0 && d.Name()[0] == '.' {
+			return filepath.SkipDir
+		}
+
+		return w.fs.Add(path)
+	})
 }
 
 func (w *Watcher) Close() error {
