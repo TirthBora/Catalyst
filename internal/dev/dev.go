@@ -18,13 +18,13 @@ func Run() error {
 		return err
 	}
 
-	cmd := runner.Command(proj)
-
 	manager := process.New()
 
+	cmd := runner.Command(proj)
 	if err := manager.Start(cmd); err != nil {
 		return err
 	}
+
 	w, err := watcher.New()
 	if err != nil {
 		return err
@@ -37,10 +37,17 @@ func Run() error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+
 	for {
 		select {
 		case file := <-w.Events:
 			fmt.Println("Changed:", file)
+
+			cmd := runner.Command(proj)
+
+			if err := manager.Restart(cmd); err != nil {
+				fmt.Println("Restart failed:", err)
+			}
 
 		case <-sig:
 			return manager.Stop()
