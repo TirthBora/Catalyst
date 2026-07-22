@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/TirthBora/catalyst/internal/browser"
 	"github.com/TirthBora/catalyst/internal/process"
 	"github.com/TirthBora/catalyst/internal/project"
 	"github.com/TirthBora/catalyst/internal/runner"
@@ -16,34 +17,43 @@ import (
 func Run() error {
 	proj, err := project.Detect()
 	if err != nil {
-		return err
+		return fmt.Errorf("detect project: %w", err)
 	}
-
-	manager := process.New()
 
 	cmd := runner.Command(proj)
+
+	manager := process.New()
 	if err := manager.Start(cmd); err != nil {
-		return err
+		return fmt.Errorf("start process: %w", err)
 	}
+
+	// Give the application a moment to start before opening the browser.
+	time.Sleep(500 * time.Millisecond)
+
+	// Ignore browser errors in Version 1.
+	_ = browser.Open("http://localhost:8080")
 
 	w, err := watcher.New()
 	if err != nil {
-		return err
+		return fmt.Errorf("create watcher: %w", err)
 	}
 	defer w.Close()
 
 	if err := w.Watch(proj.Root); err != nil {
-		return err
+		return fmt.Errorf("watch project: %w", err)
 	}
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sig)
+
 	var (
 		pending bool
 		timer   = time.NewTimer(time.Hour)
 	)
 
 	timer.Stop()
+
 	for {
 		select {
 		case file := <-w.Events:
@@ -51,20 +61,31 @@ func Run() error {
 
 			pending = true
 
+			// Safe timer reset.
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+
 			timer.Reset(200 * time.Millisecond)
 
 		case <-timer.C:
 			if pending {
 				pending = false
 
+				fmt.Println("Restarting...")
+
 				cmd := runner.Command(proj)
 
 				if err := manager.Restart(cmd); err != nil {
-					fmt.Println(err)
+					fmt.Println("Restart failed:", err)
 				}
 			}
 
 		case <-sig:
+			fmt.Println("\nShutting down Catalyst...")
 			return manager.Stop()
 		}
 	}
