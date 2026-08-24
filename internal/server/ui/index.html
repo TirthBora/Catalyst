@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalyst Workspace</title>
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #181b24;
+            --accent: #6366f1;
+            --text: #f3f4f6;
+            --border: #2e3440;
+            --success: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+        }
+        .preview { display: flex; flex-direction: column; border-right: 1px solid var(--border); background: #fff; }
+        .url-bar {
+            background: var(--bg-secondary);
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .url-bar input {
+            flex: 1;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+        .url-bar button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        iframe { flex: 1; border: none; width: 100%; height: 100%; }
+        .logs { background: var(--bg-secondary); padding: 12px; font-family: monospace; font-size: 12px; overflow-y: auto; }
+        .log-entry { padding: 6px; border-left: 3px solid var(--accent); background: rgba(0,0,0,0.2); margin-bottom: 8px; border-radius: 0 4px 4px 0; }
+        
+        /* Mobile responsive layout */
+        @media (max-width: 768px) {
+            .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 150px; }
+            .preview { border-right: none; border-bottom: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="font-weight: bold; letter-spacing: 1px;">CATALYST</div>
+        <div class="status" id="status"><div class="dot"></div><span id="status-text">Connected</span></div>
+    </header>
+    <div class="workspace">
+        <div class="preview">
+            <div class="url-bar">
+                <input type="text" id="target" value="http://localhost:5173" placeholder="http://localhost:3000" />
+                <button onclick="reloadFrame()">Reload</button>
+            </div>
+            <iframe id="frame" src="about:blank"></iframe>
+        </div>
+        <div class="logs" id="logs">
+            <div class="log-entry">Waiting for file changes...</div>
+        </div>
+    </div>
+
+    <script>
+        const frame = document.getElementById('frame');
+        const target = document.getElementById('target');
+        const logs = document.getElementById('logs');
+        const statusText = document.getElementById('status-text');
+
+        // Note: Change 'localhost' to your primary laptop's IP if testing on a phone!
+        // We will automate passing the exact IP here in V2, but for now, the user inputs the dev server IP.
+        
+        function reloadFrame() {
+            frame.src = target.value;
+        }
+
+        target.addEventListener('change', reloadFrame);
+
+        function connect() {
+            const ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onopen = () => {
+                statusText.innerText = "Listening";
+                if (frame.src === "about:blank") reloadFrame();
+            };
+
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.type === "FILE_CHANGED") {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry';
+                    div.innerText = `[${data.payload.timestamp}] Saved: ${data.payload.file}`;
+                    logs.prepend(div);
+                    reloadFrame(); // Auto-refresh the preview!
+                }
+            };
+
+            ws.onclose = () => {
+                statusText.innerText = "Reconnecting...";
+                setTimeout(connect, 2000);
+            };
+        }
+        connect();
+    </script>
+</body>
+</html>
