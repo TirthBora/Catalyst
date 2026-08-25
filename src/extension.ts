@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
+import * as fs from 'fs';
 
 let catalystProcess: ChildProcess | null = null;
 let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
+    vscode.window.showInformationMessage('Catalyst extension activated!');
+
     statusBarItem = vscode.window.createStatusBarItem(
         vscode.StatusBarAlignment.Right,
         100
@@ -13,6 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(statusBarItem);
 
+    // Command to open the Catalyst UI
     context.subscriptions.push(
         vscode.commands.registerCommand('catalyst.openUI', () => {
             vscode.env.openExternal(
@@ -21,62 +25,133 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // Start Catalyst immediately if a workspace is already open
-    if (vscode.workspace.workspaceFolders) {
-        const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-        startCatalystDaemon(rootPath);
-    }
+    // Try to start Catalyst if a workspace is already open
+    startFromCurrentWorkspace();
 
-    // Start Catalyst when a workspace is opened later
+    // If the Extension Development Host starts without a workspace,
+    // start Catalyst when a workspace is opened.
     context.subscriptions.push(
         vscode.workspace.onDidChangeWorkspaceFolders(() => {
-            if (!catalystProcess && vscode.workspace.workspaceFolders) {
-                const rootPath =
-                    vscode.workspace.workspaceFolders[0].uri.fsPath;
-
-                startCatalystDaemon(rootPath);
-            }
+            startFromCurrentWorkspace();
         })
     );
+}
+
+function startFromCurrentWorkspace() {
+    if (catalystProcess) {
+        return;
+    }
+
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        statusBarItem.text = '$(circle-slash) Catalyst: No Workspace';
+        statusBarItem.tooltip = 'Open a workspace to start Catalyst';
+        statusBarItem.show();
+
+        return;
+    }
+
+    const rootPath = workspaceFolders[0].uri.fsPath;
+
+    startCatalystDaemon(rootPath);
 }
 
 function startCatalystDaemon(rootPath: string) {
     statusBarItem.text = '$(sync~spin) Catalyst Booting...';
     statusBarItem.tooltip = 'Starting Catalyst...';
+    statusBarItem.command = undefined;
     statusBarItem.show();
 
     const exePath = path.join(rootPath, 'catalyst.exe');
 
-    console.log(`Catalyst executable: ${exePath}`);
+    console.log('=================================');
+    console.log('CATALYST EXTENSION');
+    console.log(`Workspace: ${rootPath}`);
+    console.log(`Executable: ${exePath}`);
+    console.log('=================================');
 
-    catalystProcess = spawn(exePath, [], {
-        cwd: rootPath
-    });
+    vscode.window.showInformationMessage(
+        `Catalyst found workspace: ${rootPath}`
+    );
+
+    // Check that catalyst.exe actually exists
+    if (!fs.existsSync(exePath)) {
+        const message = `catalyst.exe was not found at:\n${exePath}`;
+
+        console.error(message);
+
+        statusBarItem.text = '$(error) Catalyst Error';
+        statusBarItem.tooltip = message;
+        statusBarItem.show();
+
+        vscode.window.showErrorMessage(message);
+
+        return;
+    }
+
+    vscode.window.showInformationMessage(
+        `Starting Catalyst: ${exePath}`
+    );
+
+    try {
+        catalystProcess = spawn(exePath, [], {
+            cwd: rootPath,
+            windowsHide: true
+        });
+    } catch (error) {
+        const message = `Failed to start Catalyst: ${error}`;
+
+        console.error(message);
+
+        statusBarItem.text = '$(error) Catalyst Error';
+        statusBarItem.tooltip = message;
+        statusBarItem.show();
+
+        catalystProcess = null;
+
+        return;
+    }
+
+    let stdoutBuffer = '';
 
     catalystProcess.stdout?.on('data', (data) => {
         const output = data.toString();
 
-        console.log(`Catalyst: ${output}`);
+        console.log(`Catalyst stdout: ${output}`);
 
-        if (output.includes('CATALYST V1 IS ACTIVE')) {
+        stdoutBuffer += output;
+
+        // Keep checking the complete accumulated output.
+        if (stdoutBuffer.includes('CATALYST V1 IS ACTIVE')) {
             statusBarItem.text = '$(broadcast) Catalyst Active';
             statusBarItem.tooltip =
                 'Click to open Catalyst Secondary Workspace';
             statusBarItem.command = 'catalyst.openUI';
+            statusBarItem.show();
+
+            vscode.window.showInformationMessage(
+                'Catalyst engine started successfully!'
+            );
         }
     });
 
     catalystProcess.stderr?.on('data', (data) => {
-        console.error(`Catalyst Error: ${data.toString()}`);
+        const errorOutput = data.toString();
+
+        console.error(`Catalyst stderr: ${errorOutput}`);
     });
 
     catalystProcess.on('error', (err) => {
-        vscode.window.showErrorMessage(
-            `Catalyst failed to start: ${err.message}`
-        );
+        console.error(`Catalyst process error: ${err.message}`);
 
         statusBarItem.text = '$(error) Catalyst Error';
         statusBarItem.tooltip = err.message;
+        statusBarItem.show();
+
+        vscode.window.showErrorMessage(
+            `Catalyst failed to start: ${err.message}`
+        );
 
         catalystProcess = null;
     });
@@ -86,8 +161,11 @@ function startCatalystDaemon(rootPath: string) {
 
         catalystProcess = null;
 
-        if (code !== 0) {
+        if (code !== 0 && code !== null) {
             statusBarItem.text = '$(error) Catalyst Stopped';
+            statusBarItem.tooltip =
+                `Catalyst exited with code ${code}`;
+            statusBarItem.show();
         }
     });
 }
