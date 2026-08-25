@@ -1,26 +1,54 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { spawn, ChildProcess } from 'child_process';
+import * as path from 'path';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let catalystProcess: ChildProcess | null = null;
+let statusBarItem: vscode.StatusBarItem;
+
 export function activate(context: vscode.ExtensionContext) {
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    context.subscriptions.push(statusBarItem);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "catalyst" is now active!');
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) return;
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('catalyst.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Catalyst!');
-	});
+    const rootPath = workspaceFolders[0].uri.fsPath;
+    
+    // Command to open the browser
+    context.subscriptions.push(vscode.commands.registerCommand('catalyst.openUI', () => {
+        vscode.env.openExternal(vscode.Uri.parse('http://localhost:9999'));
+    }));
 
-	context.subscriptions.push(disposable);
+    startCatalystDaemon(rootPath);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+function startCatalystDaemon(rootPath: string) {
+    statusBarItem.text = "$(sync~spin) Catalyst Booting...";
+    statusBarItem.show();
+
+    // Point this to where you put your catalyst.exe!
+    // For now, we assume it is in the root of the opened VS Code folder
+    const exePath = path.join(rootPath, 'catalyst.exe');
+
+    catalystProcess = spawn(exePath, [], { cwd: rootPath });
+
+    catalystProcess.stdout?.on('data', (data) => {
+        const output = data.toString();
+        if (output.includes('CATALYST V1 IS ACTIVE')) {
+            statusBarItem.text = "$(broadcast) Catalyst Active";
+            statusBarItem.tooltip = "Click to open Catalyst Secondary Workspace";
+            statusBarItem.command = 'catalyst.openUI';
+        }
+    });
+
+    catalystProcess.on('error', (err) => {
+        vscode.window.showErrorMessage(`Catalyst failed to start: ${err.message}`);
+        statusBarItem.text = "$(error) Catalyst Error";
+    });
+}
+
+export function deactivate() {
+    if (catalystProcess) {
+        catalystProcess.kill();
+    }
+}
