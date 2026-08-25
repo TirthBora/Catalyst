@@ -164,7 +164,7 @@
             <input
                 type="text"
                 id="target"
-                placeholder="http://localhost:8000"
+                placeholder="/preview/";
             />
 
             <button onclick="reloadFrame()">
@@ -206,7 +206,7 @@ const savedTarget =
 if (savedTarget) {
     target.value = savedTarget;
 } else {
-    target.value = 'http://localhost:8000';
+    target.value = '/preview/';
 }
 
 // LOGGING

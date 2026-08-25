@@ -62,7 +62,7 @@ func main() {
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	// 3. Boot the HTTP Server
-	srv := server.NewServer(port, hub)
+	srv := server.NewServer(port, hub, cwd)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("❌ Server failed to start: %v\n", err)
 	}
