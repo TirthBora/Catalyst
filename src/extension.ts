@@ -21,11 +21,13 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // Start Catalyst immediately if a workspace is already open
     if (vscode.workspace.workspaceFolders) {
         const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
         startCatalystDaemon(rootPath);
     }
 
+    // Start Catalyst when a workspace is opened later
     context.subscriptions.push(
         vscode.workspace.onDidChangeWorkspaceFolders(() => {
             if (!catalystProcess && vscode.workspace.workspaceFolders) {
@@ -39,32 +41,60 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 function startCatalystDaemon(rootPath: string) {
-    statusBarItem.text = "$(sync~spin) Catalyst Booting...";
+    statusBarItem.text = '$(sync~spin) Catalyst Booting...';
+    statusBarItem.tooltip = 'Starting Catalyst...';
     statusBarItem.show();
 
-    // Point this to where you put your catalyst.exe!
-    // For now, we assume it is in the root of the opened VS Code folder
     const exePath = path.join(rootPath, 'catalyst.exe');
 
-    catalystProcess = spawn(exePath, [], { cwd: rootPath });
+    console.log(`Catalyst executable: ${exePath}`);
+
+    catalystProcess = spawn(exePath, [], {
+        cwd: rootPath
+    });
 
     catalystProcess.stdout?.on('data', (data) => {
         const output = data.toString();
+
+        console.log(`Catalyst: ${output}`);
+
         if (output.includes('CATALYST V1 IS ACTIVE')) {
-            statusBarItem.text = "$(broadcast) Catalyst Active";
-            statusBarItem.tooltip = "Click to open Catalyst Secondary Workspace";
+            statusBarItem.text = '$(broadcast) Catalyst Active';
+            statusBarItem.tooltip =
+                'Click to open Catalyst Secondary Workspace';
             statusBarItem.command = 'catalyst.openUI';
         }
     });
 
+    catalystProcess.stderr?.on('data', (data) => {
+        console.error(`Catalyst Error: ${data.toString()}`);
+    });
+
     catalystProcess.on('error', (err) => {
-        vscode.window.showErrorMessage(`Catalyst failed to start: ${err.message}`);
-        statusBarItem.text = "$(error) Catalyst Error";
+        vscode.window.showErrorMessage(
+            `Catalyst failed to start: ${err.message}`
+        );
+
+        statusBarItem.text = '$(error) Catalyst Error';
+        statusBarItem.tooltip = err.message;
+
+        catalystProcess = null;
+    });
+
+    catalystProcess.on('exit', (code) => {
+        console.log(`Catalyst exited with code ${code}`);
+
+        catalystProcess = null;
+
+        if (code !== 0) {
+            statusBarItem.text = '$(error) Catalyst Stopped';
+        }
     });
 }
 
 export function deactivate() {
     if (catalystProcess) {
         catalystProcess.kill();
+        catalystProcess = null;
     }
 }
