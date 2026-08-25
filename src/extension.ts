@@ -6,20 +6,36 @@ let catalystProcess: ChildProcess | null = null;
 let statusBarItem: vscode.StatusBarItem;
 
 export function activate(context: vscode.ExtensionContext) {
-    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    );
+
     context.subscriptions.push(statusBarItem);
 
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) return;
+    context.subscriptions.push(
+        vscode.commands.registerCommand('catalyst.openUI', () => {
+            vscode.env.openExternal(
+                vscode.Uri.parse('http://localhost:9999')
+            );
+        })
+    );
 
-    const rootPath = workspaceFolders[0].uri.fsPath;
-    
-    // Command to open the browser
-    context.subscriptions.push(vscode.commands.registerCommand('catalyst.openUI', () => {
-        vscode.env.openExternal(vscode.Uri.parse('http://localhost:9999'));
-    }));
+    if (vscode.workspace.workspaceFolders) {
+        const rootPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+        startCatalystDaemon(rootPath);
+    }
 
-    startCatalystDaemon(rootPath);
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeWorkspaceFolders(() => {
+            if (!catalystProcess && vscode.workspace.workspaceFolders) {
+                const rootPath =
+                    vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+                startCatalystDaemon(rootPath);
+            }
+        })
+    );
 }
 
 function startCatalystDaemon(rootPath: string) {
