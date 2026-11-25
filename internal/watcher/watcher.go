@@ -13,8 +13,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// shouldIgnore reports whether a directory name should be excluded from watching.
-func shouldIgnore(name string) bool {
+// ShouldIgnore reports whether a directory name should be excluded from watching.
+func ShouldIgnore(name string) bool {
 	switch name {
 	case ".git", "node_modules", "dist", "build", ".vscode", ".idea", "vendor", ".venv", "__pycache__":
 		return true
@@ -52,7 +52,7 @@ func (w *Watcher) watchDirRecursively(dir string) error {
 			return nil
 		}
 		if info.IsDir() {
-			if shouldIgnore(info.Name()) {
+			if ShouldIgnore(info.Name()) {
 				return filepath.SkipDir
 			}
 			return w.fsWatcher.Add(path)
@@ -81,7 +81,7 @@ func (w *Watcher) eventLoop() {
 			// If a new directory was created, dynamically add it to the watcher.
 			if event.Op&fsnotify.Create != 0 {
 				if fi, err := os.Stat(event.Name); err == nil && fi.IsDir() {
-					if !shouldIgnore(fi.Name()) {
+					if !ShouldIgnore(fi.Name()) {
 						_ = w.watchDirRecursively(event.Name)
 					}
 					w.debounceEmit(event.Name, "create")

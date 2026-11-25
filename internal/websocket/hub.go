@@ -25,6 +25,7 @@ type Hub struct {
 	broadcast  chan Event
 	register   chan *websocket.Conn
 	unregister chan *websocket.Conn
+	stop       chan struct{}
 	mu         sync.Mutex
 }
 
@@ -34,12 +35,38 @@ func NewHub() *Hub {
 		broadcast:  make(chan Event, 100),
 		register:   make(chan *websocket.Conn),
 		unregister: make(chan *websocket.Conn),
+		stop:       make(chan struct{}),
+	}
+}
+
+func (h *Hub) ClientCount() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.clients)
+}
+
+func (h *Hub) Stop() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	select {
+	case <-h.stop:
+	default:
+		close(h.stop)
 	}
 }
 
 func (h *Hub) Run() {
 	for {
 		select {
+		case <-h.stop:
+			h.mu.Lock()
+			for client := range h.clients {
+				client.Close()
+				delete(h.clients, client)
+			}
+			h.mu.Unlock()
+			return
+
 		case conn := <-h.register:
 			h.mu.Lock()
 			h.clients[conn] = true
