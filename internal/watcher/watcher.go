@@ -13,6 +13,16 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// shouldIgnore reports whether a directory name should be excluded from watching.
+func shouldIgnore(name string) bool {
+	switch name {
+	case ".git", "node_modules", "dist", "build", ".vscode", ".idea", "vendor", ".venv", "__pycache__":
+		return true
+	default:
+		return false
+	}
+}
+
 type Watcher struct {
 	fsWatcher *fsnotify.Watcher
 	hub       *websocket.Hub
@@ -35,23 +45,24 @@ func NewWatcher(rootPath string, hub *websocket.Hub) (*Watcher, error) {
 	}, nil
 }
 
-func (w *Watcher) Start() error {
-	// Walk the directory and watch everything
-	err := filepath.Walk(w.rootPath, func(path string, info os.FileInfo, err error) error {
+// watchDirRecursively adds dir and all its non-ignored subdirectories to the watcher.
+func (w *Watcher) watchDirRecursively(dir string) error {
+	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
 		if info.IsDir() {
-			name := info.Name()
-			// Skip heavy/system directories to save memory
-			if name == ".git" || name == "node_modules" || name == "dist" || name == "build" {
+			if shouldIgnore(info.Name()) {
 				return filepath.SkipDir
 			}
 			return w.fsWatcher.Add(path)
 		}
 		return nil
 	})
-	if err != nil {
+}
+
+func (w *Watcher) Start() error {
+	if err := w.watchDirRecursively(w.rootPath); err != nil {
 		return err
 	}
 
@@ -66,10 +77,34 @@ func (w *Watcher) eventLoop() {
 			if !ok {
 				return
 			}
-			// Only care about writes or creates
-			if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-				w.debounceEmit(event.Name)
+
+			// If a new directory was created, dynamically add it to the watcher.
+			if event.Op&fsnotify.Create != 0 {
+				if fi, err := os.Stat(event.Name); err == nil && fi.IsDir() {
+					if !shouldIgnore(fi.Name()) {
+						_ = w.watchDirRecursively(event.Name)
+					}
+					w.debounceEmit(event.Name, "create")
+					continue
+				}
 			}
+
+			var action string
+			switch {
+			case event.Op&fsnotify.Write != 0:
+				action = "write"
+			case event.Op&fsnotify.Create != 0:
+				action = "create"
+			case event.Op&fsnotify.Remove != 0:
+				action = "delete"
+			case event.Op&fsnotify.Rename != 0:
+				action = "rename"
+			default:
+				continue
+			}
+
+			w.debounceEmit(event.Name, action)
+
 		case err, ok := <-w.fsWatcher.Errors:
 			if !ok {
 				return
@@ -79,12 +114,13 @@ func (w *Watcher) eventLoop() {
 	}
 }
 
-func (w *Watcher) debounceEmit(filename string) {
+func (w *Watcher) debounceEmit(filename, action string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
 	// Ignore temporary files created by code editors
-	if strings.HasSuffix(filename, "~") || strings.HasSuffix(filename, ".tmp") {
+	base := filepath.Base(filename)
+	if strings.HasSuffix(filename, "~") || strings.HasSuffix(filename, ".tmp") || strings.HasPrefix(base, ".#") {
 		return
 	}
 
@@ -94,15 +130,29 @@ func (w *Watcher) debounceEmit(filename string) {
 
 	// Wait 100ms before broadcasting to avoid spamming the WebSocket
 	w.timers[filename] = time.AfterFunc(100*time.Millisecond, func() {
-		relPath, _ := filepath.Rel(w.rootPath, filename)
-		log.Printf(" File Changed: %s\n", relPath)
+		w.mu.Lock()
+		delete(w.timers, filename)
+		w.mu.Unlock()
+
+		relPath, err := filepath.Rel(w.rootPath, filename)
+		if err != nil {
+			relPath = filename
+		}
+		log.Printf(" File Changed [%s]: %s\n", action, relPath)
 		w.hub.Broadcast("FILE_CHANGED", map[string]string{
 			"file":      relPath,
+			"action":    action,
 			"timestamp": time.Now().Format("15:04:05"),
 		})
 	})
 }
 
 func (w *Watcher) Close() {
+	w.mu.Lock()
+	for k, t := range w.timers {
+		t.Stop()
+		delete(w.timers, k)
+	}
+	w.mu.Unlock()
 	w.fsWatcher.Close()
 }
