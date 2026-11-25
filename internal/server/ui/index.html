@@ -4,16 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catalyst Workspace</title>
-
     <style>
         :root {
-            --bg-primary: #0f1117;
-            --bg-secondary: #181b24;
-            --accent: #6366f1;
-            --text: #f3f4f6;
-            --border: #2e3440;
-            --success: #10b981;
-            --error: #ef4444;
+            --bg-primary: #111318;
+            --bg-secondary: #181B22;
+            --bg-panel: #1E222B;
+            --bg-elevated: #252A35;
+            --text-primary: #E8EAF0;
+            --text-secondary: #9299A8;
+            --text-muted: #656C7D;
+            --border: #303644;
+            --border-subtle: #242935;
+            --accent: #3B82F6;
+            --accent-hover: #2563EB;
+            --accent-subtle: rgba(59, 130, 246, 0.12);
+            --success: #10B981;
+            --success-subtle: rgba(16, 185, 129, 0.12);
+            --warning: #F59E0B;
+            --warning-subtle: rgba(245, 158, 11, 0.12);
+            --error: #EF4444;
+            --error-subtle: rgba(239, 68, 68, 0.12);
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            --font-mono: "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
         }
 
         * {
@@ -23,404 +35,709 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: var(--font-sans);
             background: var(--bg-primary);
-            color: var(--text);
+            color: var(--text-primary);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* ---------------- Header ---------------- */
         header {
             background: var(--bg-secondary);
             border-bottom: 1px solid var(--border);
-            padding: 12px 20px;
+            padding: 10px 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
+            height: 52px;
         }
 
-        .status {
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            color: var(--text-primary);
+        }
+
+        .brand-icon {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .workspace-chip {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 3px 10px;
             font-size: 12px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
+        .badge {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--accent-subtle);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.25);
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-pill {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--success-subtle);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-pill.disconnected {
+            background: var(--error-subtle);
+            color: var(--error);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .status-pill.connecting {
+            background: var(--warning-subtle);
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* ---------------- Mobile Segmented Control ---------------- */
+        .mobile-tabs {
+            display: none;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 6px 12px;
+            gap: 8px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 6px 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* ---------------- Workspace Layout ---------------- */
         .workspace {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr 300px;
+            grid-template-columns: 1fr 340px;
+            overflow: hidden;
+            background: var(--bg-primary);
         }
 
-        .preview {
+        /* ---------------- Preview Section ---------------- */
+        .preview-pane {
             display: flex;
             flex-direction: column;
             border-right: 1px solid var(--border);
-            background: #fff;
+            background: var(--bg-primary);
+            overflow: hidden;
         }
 
-        .url-bar {
+        .preview-toolbar {
             background: var(--bg-secondary);
-            padding: 8px;
+            padding: 8px 14px;
             display: flex;
+            align-items: center;
             gap: 8px;
             border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
         }
 
-        .url-bar input {
+        .url-box {
             flex: 1;
-            background: var(--bg-primary);
+            min-width: 220px;
+            display: flex;
+            align-items: center;
+            background: var(--bg-panel);
             border: 1px solid var(--border);
-            color: var(--text);
-            padding: 6px 10px;
-            border-radius: 4px;
+            border-radius: 6px;
+            padding: 0 8px;
+            transition: border-color 0.15s;
         }
 
-        .url-bar button {
+        .url-box:focus-within {
+            border-color: var(--accent);
+        }
+
+        .url-prefix {
+            font-size: 12px;
+            color: var(--text-muted);
+            user-select: none;
+            margin-right: 4px;
+        }
+
+        .url-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 7px 0;
+            outline: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            user-select: none;
+        }
+
+        .btn:hover {
+            background: var(--border);
+        }
+
+        .btn-accent {
             background: var(--accent);
             color: white;
+            border-color: var(--accent);
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-hover);
+        }
+
+        .presets {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .preset-chip {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .preset-chip:hover {
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .viewport-modes {
+            display: flex;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .mode-btn {
+            background: transparent;
             border: none;
-            padding: 0 12px;
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            font-size: 11px;
             border-radius: 4px;
             cursor: pointer;
         }
 
-        .url-bar button:hover {
-            opacity: 0.9;
+        .mode-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .preview-viewport {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #090B0E;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .preview-frame-container {
+            width: 100%;
+            height: 100%;
+            transition: width 0.2s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fff;
         }
 
         iframe {
-            flex: 1;
-            border: none;
             width: 100%;
             height: 100%;
+            border: none;
+            display: block;
         }
 
-        .logs {
+        /* ---------------- Logs & Activity Pane ---------------- */
+        .logs-pane {
+            display: flex;
+            flex-direction: column;
             background: var(--bg-secondary);
-            padding: 12px;
-            font-family: monospace;
+            overflow: hidden;
+        }
+
+        .logs-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .logs-title {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .filter-bar {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 6px;
+            background: var(--bg-panel);
+        }
+
+        .filter-chip {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .filter-chip.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--border);
+        }
+
+        .logs-container {
+            flex: 1;
+            padding: 10px;
+            font-family: var(--font-mono);
             font-size: 12px;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .log-entry {
-            padding: 6px;
+            padding: 8px 10px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
             border-left: 3px solid var(--accent);
-            background: rgba(0, 0, 0, 0.2);
-            margin-bottom: 8px;
             border-radius: 0 4px 4px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
-        .connection-error {
-            border-left-color: var(--error);
+        .log-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
-        @media (max-width: 768px) {
-            .workspace {
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr 150px;
+        .log-pill {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 1px 6px;
+            border-radius: 3px;
+        }
+
+        .pill-write { background: var(--success-subtle); color: var(--success); }
+        .pill-create { background: var(--accent-subtle); color: var(--accent); }
+        .pill-delete { background: var(--error-subtle); color: var(--error); }
+        .pill-rename { background: var(--warning-subtle); color: var(--warning); }
+        .pill-system { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+
+        .log-filename {
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        /* ---------------- Responsive ---------------- */
+        @media (max-width: 840px) {
+            .mobile-tabs {
+                display: flex;
             }
 
-            .preview {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .workspace.view-preview .logs-pane {
+                display: none;
+            }
+
+            .workspace.view-logs .preview-pane {
+                display: none;
+            }
+
+            .preview-pane {
                 border-right: none;
-                border-bottom: 1px solid var(--border);
             }
         }
     </style>
 </head>
-
 <body>
 
 <header>
-    <div style="font-weight: bold; letter-spacing: 1px;">
-        CATALYST
+    <div class="header-left">
+        <div class="brand-mark">
+            <div class="brand-icon">C</div>
+            CATALYST
+        </div>
+        <div class="workspace-chip" id="ws-chip">
+            <span id="ws-name">Workspace</span>
+        </div>
+        <div class="badge" id="ws-badge">Detecting...</div>
     </div>
 
-    <div class="status" id="status">
-        <div class="dot"></div>
-        <span id="status-text">Connecting...</span>
+    <div class="header-right">
+        <div class="status-pill" id="status-pill">
+            <div class="dot"></div>
+            <span id="status-text">Connecting</span>
+        </div>
     </div>
 </header>
 
-<div class="workspace">
+<div class="mobile-tabs">
+    <button class="tab-btn active" id="tab-preview" onclick="switchView('preview')">Preview</button>
+    <button class="tab-btn" id="tab-logs" onclick="switchView('logs')">Activity Log</button>
+</div>
 
-    <div class="preview">
+<div class="workspace view-preview" id="workspace-grid">
+    <!-- Preview Pane -->
+    <div class="preview-pane">
+        <div class="preview-toolbar">
+            <div class="url-box">
+                <input type="text" id="target" placeholder="/preview/" />
+            </div>
 
-        <div class="url-bar">
-            <input
-                type="text"
-                id="target"
-                placeholder="/preview/";
-            />
-
-            <button onclick="reloadFrame()">
+            <button class="btn btn-accent" onclick="reloadFrame()">
                 Reload
             </button>
+
+            <div class="presets">
+                <span class="preset-chip" onclick="setTarget('/preview/')">Static Preview</span>
+                <span class="preset-chip" id="proxy-chip" style="display: none;" onclick="setProxyTarget()">Proxy Dev</span>
+            </div>
+
+            <div class="viewport-modes">
+                <button class="mode-btn active" id="mode-full" onclick="setViewport('full')">Full</button>
+                <button class="mode-btn" id="mode-tablet" onclick="setViewport('tablet')">Tablet</button>
+                <button class="mode-btn" id="mode-mobile" onclick="setViewport('mobile')">Mobile</button>
+            </div>
         </div>
 
-        <iframe
-            id="frame"
-            src="about:blank">
-        </iframe>
-
+        <div class="preview-viewport">
+            <div class="preview-frame-container" id="frame-container">
+                <iframe id="frame" src="about:blank"></iframe>
+            </div>
+        </div>
     </div>
 
-    <div class="logs" id="logs">
-
-        <div class="log-entry">
-            Connecting to Catalyst...
+    <!-- Activity Log Pane -->
+    <div class="logs-pane">
+        <div class="logs-header">
+            <span class="logs-title">Event Activity</span>
+            <button class="btn" style="padding: 3px 8px; font-size: 11px;" onclick="clearLogs()">Clear</button>
         </div>
 
-    </div>
+        <div class="filter-bar">
+            <button class="filter-chip active" id="filter-all" onclick="setFilter('all')">All</button>
+            <button class="filter-chip" id="filter-writes" onclick="setFilter('write')">Writes</button>
+            <button class="filter-chip" id="filter-deletes" onclick="setFilter('delete')">Deletes</button>
+        </div>
 
+        <div class="logs-container" id="logs">
+            <div class="log-entry">
+                <div class="log-meta">
+                    <span class="log-pill pill-system">System</span>
+                    <span>Init</span>
+                </div>
+                <div class="log-filename">Catalyst workspace initialized.</div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-
 const frame = document.getElementById('frame');
+const frameContainer = document.getElementById('frame-container');
 const target = document.getElementById('target');
 const logs = document.getElementById('logs');
+const statusPill = document.getElementById('status-pill');
 const statusText = document.getElementById('status-text');
+const wsName = document.getElementById('ws-name');
+const wsBadge = document.getElementById('ws-badge');
+const proxyChip = document.getElementById('proxy-chip');
+const workspaceGrid = document.getElementById('workspace-grid');
 
+let detectedPort = '';
+let currentFilter = 'all';
 
-// TARGET URL
+// Load initial target
+const savedTarget = localStorage.getItem('catalystTarget') || '/preview/';
+target.value = savedTarget;
 
+// ---------------- Fetch Workspace Metadata ----------------
+async function loadWorkspaceMetadata() {
+    try {
+        const res = await fetch('/api/workspace');
+        if (!res.ok) return;
+        const data = await res.json();
 
-const savedTarget =
-    localStorage.getItem('catalystTarget');
+        if (data.name) wsName.innerText = data.name;
+        if (data.framework) {
+            wsBadge.innerText = data.framework;
+        } else if (data.type) {
+            wsBadge.innerText = data.type;
+        }
 
-if (savedTarget) {
-    target.value = savedTarget;
-} else {
-    target.value = '/preview/';
+        if (data.defaultPort) {
+            detectedPort = data.defaultPort;
+            proxyChip.style.display = 'inline-block';
+            proxyChip.innerText = `Proxy :${detectedPort}`;
+        }
+    } catch (err) {
+        console.error('Failed to load workspace metadata:', err);
+    }
+}
+loadWorkspaceMetadata();
+
+// ---------------- Target Navigation ----------------
+function setTarget(url) {
+    target.value = url;
+    localStorage.setItem('catalystTarget', url);
+    reloadFrame();
 }
 
-// LOGGING
-
-function addLog(message, isError = false) {
-
-    const div = document.createElement('div');
-
-    div.className = 'log-entry';
-
-    if (isError) {
-        div.classList.add('connection-error');
+function setProxyTarget() {
+    if (detectedPort) {
+        setTarget(`/proxy/${detectedPort}/`);
     }
+}
 
-    div.innerText = message;
+target.addEventListener('change', () => {
+    localStorage.setItem('catalystTarget', target.value.trim());
+    reloadFrame();
+});
+
+function reloadFrame() {
+    const url = target.value.trim();
+    if (!url) return;
+
+    localStorage.setItem('catalystTarget', url);
+    const separator = url.includes('?') ? '&' : '?';
+    const cacheBust = `${separator}catalyst=${Date.now()}`;
+    frame.src = url + cacheBust;
+}
+
+// ---------------- Viewport Frame Mode ----------------
+function setViewport(mode) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`mode-${mode}`).classList.add('active');
+
+    if (mode === 'mobile') {
+        frameContainer.style.width = '375px';
+        frameContainer.style.height = '667px';
+    } else if (mode === 'tablet') {
+        frameContainer.style.width = '768px';
+        frameContainer.style.height = '1024px';
+    } else {
+        frameContainer.style.width = '100%';
+        frameContainer.style.height = '100%';
+    }
+}
+
+// ---------------- Mobile Tabs ----------------
+function switchView(view) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${view}`).classList.add('active');
+
+    workspaceGrid.classList.remove('view-preview', 'view-logs');
+    workspaceGrid.classList.add(`view-${view}`);
+}
+
+// ---------------- Logs & Filters ----------------
+function addLogEntry(filename, action = 'write', timestamp = '') {
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.dataset.action = action;
+
+    const time = timestamp || new Date().toLocaleTimeString();
+    let pillClass = 'pill-write';
+    if (action === 'create') pillClass = 'pill-create';
+    if (action === 'delete') pillClass = 'pill-delete';
+    if (action === 'rename') pillClass = 'pill-rename';
+
+    div.innerHTML = `
+        <div class="log-meta">
+            <span class="log-pill ${pillClass}">${action}</span>
+            <span>${time}</span>
+        </div>
+        <div class="log-filename">${filename}</div>
+    `;
+
+    if (currentFilter !== 'all' && currentFilter !== action) {
+        div.style.display = 'none';
+    }
 
     logs.prepend(div);
 }
 
-
-// --------------------------------------------------
-// PREVIEW RELOAD
-// --------------------------------------------------
-
-function reloadFrame() {
-
-    const url = target.value.trim();
-
-    if (!url) {
-        return;
-    }
-
-    localStorage.setItem(
-        'catalystTarget',
-        url
-    );
-
-    /*
-     * Add a cache-busting parameter.
-     *
-     * Example:
-     *
-     * http://localhost:8000
-     *
-     * becomes:
-     *
-     * http://localhost:8000?catalyst=123456789
-     *
-     * This forces the browser to request
-     * fresh HTML/CSS/JS.
-     */
-
-    const separator =
-        url.includes('?') ? '&' : '?';
-
-    const cacheBust =
-        `${separator}catalyst=${Date.now()}`;
-
-    frame.src = url + cacheBust;
+function clearLogs() {
+    logs.innerHTML = '';
 }
 
-// TARGET URL CHANGED
+function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
 
+    if (filter === 'all') document.getElementById('filter-all').classList.add('active');
+    if (filter === 'write') document.getElementById('filter-writes').classList.add('active');
+    if (filter === 'delete') document.getElementById('filter-deletes').classList.add('active');
 
-target.addEventListener('change', () => {
+    document.querySelectorAll('.log-entry').forEach(entry => {
+        const action = entry.dataset.action;
+        if (filter === 'all' || action === filter) {
+            entry.style.display = 'flex';
+        } else {
+            entry.style.display = 'none';
+        }
+    });
+}
 
-    localStorage.setItem(
-        'catalystTarget',
-        target.value.trim()
-    );
-
-    reloadFrame();
-
-});
-
-// WEBSOCKET
-
+// ---------------- WebSocket Connection ----------------
 let ws = null;
 
 function connect() {
-
-    const protocol =
-        window.location.protocol === 'https:'
-            ? 'wss:'
-            : 'ws:';
-
-    const wsUrl =
-        `${protocol}//${window.location.host}/ws`;
-
-    console.log(
-        'Connecting to:',
-        wsUrl
-    );
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
 
     ws = new WebSocket(wsUrl);
 
-    // CONNECTED
-    
-
     ws.onopen = () => {
-
-        statusText.innerText =
-            'Listening';
-
-        addLog(
-            'WebSocket connected'
-        );
-
-        /*
-         * Load the saved target when
-         * the WebSocket connection succeeds.
-         */
-
-        if (
-            frame.src === 'about:blank'
-        ) {
-
+        statusPill.className = 'status-pill';
+        statusText.innerText = 'Listening';
+        if (frame.src === 'about:blank') {
             reloadFrame();
-
         }
-
     };
-
-
-    // -----------------------------
-    // MESSAGE
-    // -----------------------------
 
     ws.onmessage = (event) => {
-
         try {
-
-            const data =
-                JSON.parse(event.data);
-
-            console.log(
-                'WebSocket event:',
-                data
-            );
-
-
-            if (
-                data.type ===
-                'FILE_CHANGED'
-            ) {
-
-                const timestamp =
-                    data.payload.timestamp;
-
-                const filename =
-                    data.payload.file;
-
-
-                addLog(
-                    `[${timestamp}] Saved: ${filename}`
-                );
-
-
-                /*
-                 * Automatically refresh
-                 * the preview.
-                 */
-
+            const data = JSON.parse(event.data);
+            if (data.type === 'FILE_CHANGED') {
+                const action = data.payload.action || 'write';
+                const file = data.payload.file;
+                const time = data.payload.timestamp;
+                addLogEntry(file, action, time);
                 reloadFrame();
-
             }
-
-        } catch (error) {
-
-            console.error(
-                'Invalid WebSocket message:',
-                error
-            );
-
+        } catch (err) {
+            console.error('Invalid WebSocket message:', err);
         }
-
     };
-
-    // CONNECTION CLOSED
 
     ws.onclose = () => {
-
-        statusText.innerText =
-            'Reconnecting...';
-
-        addLog(
-            'WebSocket disconnected',
-            true
-        );
-
-        setTimeout(
-            connect,
-            2000
-        );
-
+        statusPill.className = 'status-pill disconnected';
+        statusText.innerText = 'Offline';
+        setTimeout(connect, 2000);
     };
 
-    // CONNECTION ERROR
-    ws.onerror = (error) => {
-
-        console.error(
-            'WebSocket error:',
-            error
-        );
-
-        statusText.innerText =
-            'Connection Error';
-
+    ws.onerror = () => {
+        statusPill.className = 'status-pill disconnected';
+        statusText.innerText = 'Error';
     };
-
 }
-// START
-connect();
 
+connect();
 </script>
 
 </body>

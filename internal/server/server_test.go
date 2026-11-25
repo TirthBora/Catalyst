@@ -72,6 +72,19 @@ func TestServerHandler(t *testing.T) {
 	if proxyRec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400 for proxy without port, got %d", proxyRec.Code)
 	}
+
+	// 4. Test Workspace Metadata API (GET /api/workspace)
+	apiReq := httptest.NewRequest(http.MethodGet, "/api/workspace", nil)
+	apiRec := httptest.NewRecorder()
+	handler.ServeHTTP(apiRec, apiReq)
+
+	if apiRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for /api/workspace, got %d", apiRec.Code)
+	}
+	apiBody := apiRec.Body.String()
+	if !strings.Contains(apiBody, "Static Web") {
+		t.Errorf("expected detected type 'Static Web' in /api/workspace, got: %s", apiBody)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {

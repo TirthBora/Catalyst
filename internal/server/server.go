@@ -3,12 +3,14 @@ package server
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"catalyst/internal/project"
 	"catalyst/internal/proxy"
 	"catalyst/internal/websocket"
 )
@@ -20,6 +22,7 @@ type Server struct {
 	hub         *websocket.Hub
 	port        string
 	projectRoot string
+	projectInfo project.Info
 	httpServer  *http.Server
 	mu          sync.Mutex
 }
@@ -29,6 +32,7 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string) *Server {
 		hub:         hub,
 		port:        port,
 		projectRoot: projectRoot,
+		projectInfo: project.Detect(projectRoot),
 	}
 }
 
@@ -43,6 +47,21 @@ func (s *Server) Handler() (http.Handler, error) {
 
 	// WebSocket endpoint
 	mux.HandleFunc("/ws", s.hub.HandleWS)
+
+	// Workspace metadata endpoint
+	mux.HandleFunc("/api/workspace", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		data := map[string]interface{}{
+			"name":         s.projectInfo.Name,
+			"type":         s.projectInfo.Type,
+			"framework":    s.projectInfo.Framework,
+			"defaultPort":  s.projectInfo.DefaultPort,
+			"rootDir":      s.projectRoot,
+			"serverPort":   s.port,
+			"clientsCount": s.hub.ClientCount(),
+		}
+		_ = json.NewEncoder(w).Encode(data)
+	})
 
 	// Reverse proxy endpoint for local development servers
 	reverseProxy := proxy.NewReverseProxy()
