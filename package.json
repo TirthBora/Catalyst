@@ -19,7 +19,22 @@
         "command": "catalyst.openUI",
         "title": "Catalyst: Open Workspace"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Catalyst",
+      "properties": {
+        "catalyst.executablePath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to the Catalyst daemon executable (catalyst.exe)."
+        },
+        "catalyst.port": {
+          "type": "string",
+          "default": "9999",
+          "description": "Port on which Catalyst exposes the second-screen workspace."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

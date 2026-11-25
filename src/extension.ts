@@ -19,25 +19,81 @@ export function activate(context: vscode.ExtensionContext) {
     // Command to open the Catalyst UI
     context.subscriptions.push(
         vscode.commands.registerCommand('catalyst.openUI', () => {
+            const config = vscode.workspace.getConfiguration('catalyst');
+            const port = config.get<string>('port') || '9999';
             vscode.env.openExternal(
-                vscode.Uri.parse('http://localhost:9999')
+                vscode.Uri.parse(`http://localhost:${port}`)
             );
         })
     );
 
     // Try to start Catalyst if a workspace is already open
-    startFromCurrentWorkspace();
+    startFromCurrentWorkspace(context);
 
     // If the Extension Development Host starts without a workspace,
     // start Catalyst when a workspace is opened.
     context.subscriptions.push(
         vscode.workspace.onDidChangeWorkspaceFolders(() => {
-            startFromCurrentWorkspace();
+            startFromCurrentWorkspace(context);
         })
     );
 }
 
-function startFromCurrentWorkspace() {
+function resolveCatalystBinary(context: vscode.ExtensionContext, rootPath: string): string | null {
+    // 1. Explicitly configured path in VS Code settings
+    const config = vscode.workspace.getConfiguration('catalyst');
+    const configuredPath = config.get<string>('executablePath');
+    if (configuredPath && configuredPath.trim().length > 0) {
+        const expanded = configuredPath.replace(/^~/, process.env.HOME || process.env.USERPROFILE || '');
+        if (fs.existsSync(expanded)) {
+            return expanded;
+        }
+    }
+
+    // 2. Candidate paths in workspace root
+    const workspaceCandidates = [
+        path.join(rootPath, 'catalyst.exe'),
+        path.join(rootPath, 'catalyst'),
+        path.join(rootPath, 'bin', 'catalyst.exe'),
+        path.join(rootPath, 'bin', 'catalyst'),
+    ];
+    for (const candidate of workspaceCandidates) {
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    // 3. Bundled inside extension directory
+    const extensionCandidates = [
+        context.asAbsolutePath('bin/catalyst.exe'),
+        context.asAbsolutePath('bin/catalyst'),
+        context.asAbsolutePath('catalyst.exe'),
+        context.asAbsolutePath('catalyst'),
+    ];
+    for (const candidate of extensionCandidates) {
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    // 4. System PATH check
+    const pathDirs = (process.env.PATH || '').split(path.delimiter);
+    const exeNames = process.platform === 'win32'
+        ? ['catalyst.exe', 'catalyst.cmd', 'catalyst.bat', 'catalyst']
+        : ['catalyst'];
+    for (const dir of pathDirs) {
+        for (const exe of exeNames) {
+            const fullPath = path.join(dir, exe);
+            if (fs.existsSync(fullPath)) {
+                return fullPath;
+            }
+        }
+    }
+
+    return null;
+}
+
+function startFromCurrentWorkspace(context: vscode.ExtensionContext) {
     if (catalystProcess) {
         return;
     }
@@ -54,48 +110,58 @@ function startFromCurrentWorkspace() {
 
     const rootPath = workspaceFolders[0].uri.fsPath;
 
-    startCatalystDaemon(rootPath);
+    startCatalystDaemon(context, rootPath);
 }
 
-function startCatalystDaemon(rootPath: string) {
+function startCatalystDaemon(context: vscode.ExtensionContext, rootPath: string) {
     statusBarItem.text = '$(sync~spin) Catalyst Booting...';
     statusBarItem.tooltip = 'Starting Catalyst...';
     statusBarItem.command = undefined;
     statusBarItem.show();
 
-    const exePath = path.join(rootPath, 'catalyst.exe');
+    const exePath = resolveCatalystBinary(context, rootPath);
 
     console.log('=================================');
     console.log('CATALYST EXTENSION');
     console.log(`Workspace: ${rootPath}`);
-    console.log(`Executable: ${exePath}`);
+    console.log(`Executable: ${exePath || 'NOT FOUND'}`);
     console.log('=================================');
 
-    vscode.window.showInformationMessage(
-        `Catalyst found workspace: ${rootPath}`
-    );
-
-    // Check that catalyst.exe actually exists
-    if (!fs.existsSync(exePath)) {
-        const message = `catalyst.exe was not found at:\n${exePath}`;
+    // Check that a binary was resolved
+    if (!exePath) {
+        const message = 'Catalyst executable (catalyst.exe) was not found in settings, workspace, extension directory, or PATH.';
 
         console.error(message);
 
-        statusBarItem.text = '$(error) Catalyst Error';
+        statusBarItem.text = '$(error) Catalyst: Missing Binary';
         statusBarItem.tooltip = message;
         statusBarItem.show();
 
-        vscode.window.showErrorMessage(message);
+        vscode.window.showErrorMessage(
+            message,
+            'Configure Path'
+        ).then((selection) => {
+            if (selection === 'Configure Path') {
+                vscode.commands.executeCommand(
+                    'workbench.action.openSettings',
+                    'catalyst.executablePath'
+                );
+            }
+        });
 
         return;
     }
 
+    const config = vscode.workspace.getConfiguration('catalyst');
+    const port = config.get<string>('port') || '9999';
+    const args = ['-port', port, '-dir', rootPath];
+
     vscode.window.showInformationMessage(
-        `Starting Catalyst: ${exePath}`
+        `Starting Catalyst: ${exePath} (Port: ${port})`
     );
 
     try {
-        catalystProcess = spawn(exePath, [], {
+        catalystProcess = spawn(exePath, args, {
             cwd: rootPath,
             windowsHide: true
         });
@@ -126,7 +192,7 @@ function startCatalystDaemon(rootPath: string) {
         if (stdoutBuffer.includes('CATALYST V1 IS ACTIVE')) {
             statusBarItem.text = '$(broadcast) Catalyst Active';
             statusBarItem.tooltip =
-                'Click to open Catalyst Secondary Workspace';
+                `Click to open Catalyst Secondary Workspace (Port ${port})`;
             statusBarItem.command = 'catalyst.openUI';
             statusBarItem.show();
 
