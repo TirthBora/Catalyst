@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"catalyst/internal/websocket"
 )
@@ -17,6 +19,8 @@ type Server struct {
 	hub         *websocket.Hub
 	port        string
 	projectRoot string
+	httpServer  *http.Server
+	mu          sync.Mutex
 }
 
 func NewServer(port string, hub *websocket.Hub, projectRoot string) *Server {
@@ -27,11 +31,11 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string) *Server {
 	}
 }
 
-func (s *Server) Start() error {
-	// Embedded Catalyst UI
+// Handler builds and returns the HTTP request multiplexer.
+func (s *Server) Handler() (http.Handler, error) {
 	subFS, err := fs.Sub(uiFS, "ui")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	mux := http.NewServeMux()
@@ -44,7 +48,7 @@ func (s *Server) Start() error {
 
 	// Project preview
 	if _, err := os.Stat(s.projectRoot); err != nil {
-		return err
+		return nil, err
 	}
 
 	projectFS := http.FileServer(
@@ -55,5 +59,35 @@ func (s *Server) Start() error {
 		http.StripPrefix("/preview", projectFS),
 	)
 
-	return http.ListenAndServe(":"+s.port, mux)
+	return mux, nil
+}
+
+func (s *Server) Start() error {
+	handler, err := s.Handler()
+	if err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	s.httpServer = &http.Server{
+		Addr:    ":" + s.port,
+		Handler: handler,
+	}
+	s.mu.Unlock()
+
+	err = s.httpServer.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.httpServer == nil {
+		return nil
+	}
+	return s.httpServer.Shutdown(ctx)
 }
