@@ -3,3 +3,13 @@ dist
 node_modules
 .vscode-test/
 *.vsix
+
+# Binaries and executables
+*.exe
+catalyst.exe
+bin/
+
+# Logs and temporary files
+*.tmp
+*.log
+
