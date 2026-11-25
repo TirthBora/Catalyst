@@ -63,6 +63,15 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(previewBody, "My Test Project") {
 		t.Errorf("preview HTML expected to contain 'My Test Project', got: %s", previewBody)
 	}
+
+	// 3. Test Proxy route registration (GET /proxy/)
+	proxyReq := httptest.NewRequest(http.MethodGet, "/proxy/", nil)
+	proxyRec := httptest.NewRecorder()
+	handler.ServeHTTP(proxyRec, proxyReq)
+
+	if proxyRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400 for proxy without port, got %d", proxyRec.Code)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {

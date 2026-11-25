@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"catalyst/internal/proxy"
 	"catalyst/internal/websocket"
 )
 
@@ -42,6 +43,10 @@ func (s *Server) Handler() (http.Handler, error) {
 
 	// WebSocket endpoint
 	mux.HandleFunc("/ws", s.hub.HandleWS)
+
+	// Reverse proxy endpoint for local development servers
+	reverseProxy := proxy.NewReverseProxy()
+	mux.Handle("/proxy/", reverseProxy)
 
 	// Catalyst UI
 	mux.Handle("/", http.FileServer(http.FS(subFS)))
