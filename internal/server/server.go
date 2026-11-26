@@ -80,6 +80,14 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 	}
 }
 
+// isLoopback checks if an address originates from the local host.
+func isLoopback(addr string) bool {
+	return strings.HasPrefix(addr, "127.0.0.1") ||
+		strings.HasPrefix(addr, "::1") ||
+		strings.HasPrefix(addr, "[::1]") ||
+		strings.HasPrefix(addr, "localhost")
+}
+
 // Handler builds and returns the HTTP request multiplexer.
 func (s *Server) Handler() (http.Handler, error) {
 	subFS, err := fs.Sub(uiFS, "ui")
@@ -89,8 +97,15 @@ func (s *Server) Handler() (http.Handler, error) {
 
 	mux := http.NewServeMux()
 
-	// WebSocket endpoint
-	mux.HandleFunc("/ws", s.hub.HandleWS)
+	// WebSocket endpoint (authenticated for remote clients)
+	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		token := pairing.ExtractToken(r)
+		if !isLoopback(r.RemoteAddr) && (s.pairingMgr.PIN() != "" && !s.pairingMgr.IsAuthorized(token)) {
+			http.Error(w, "Unauthorized: Pairing PIN required", http.StatusUnauthorized)
+			return
+		}
+		s.hub.HandleWS(w, r)
+	})
 
 	// Workspace metadata endpoint
 	mux.HandleFunc("/api/workspace", func(w http.ResponseWriter, r *http.Request) {
@@ -526,6 +541,26 @@ func (s *Server) Handler() (http.Handler, error) {
 
 	// Pairing PIN verification endpoint
 	mux.HandleFunc("/api/pairing/verify", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Check if validating an existing session token
+		tokenParam := strings.TrimSpace(r.URL.Query().Get("token"))
+		if tokenParam != "" {
+			if s.pairingMgr.IsAuthorized(tokenParam) {
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"success": true,
+					"token":   tokenParam,
+				})
+				return
+			}
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "Session token expired or invalid",
+			})
+			return
+		}
+
 		pin := strings.TrimSpace(r.URL.Query().Get("pin"))
 		if pin == "" && r.Body != nil {
 			var body struct {
@@ -536,7 +571,6 @@ func (s *Server) Handler() (http.Handler, error) {
 		}
 
 		token, ok := s.pairingMgr.AuthorizePIN(pin)
-		w.Header().Set("Content-Type", "application/json")
 		if !ok {
 			w.WriteHeader(http.StatusUnauthorized)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{

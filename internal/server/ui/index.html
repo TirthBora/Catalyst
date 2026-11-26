@@ -638,6 +638,28 @@
             user-select: none;
         }
 
+        /* ---------------- PIN Authentication Gate ---------------- */
+        .pin-box {
+            width: 44px;
+            height: 52px;
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .pin-box:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
         /* ---------------- Responsive ---------------- */
         @media (max-width: 840px) {
             .mobile-tabs {
@@ -663,6 +685,34 @@
     </style>
 </head>
 <body>
+
+<!-- Mandatory Device Authentication Lock Screen -->
+<div id="auth-lock-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #08090C; z-index: 3000; align-items: center; justify-content: center;">
+    <div style="background: #11141B; border: 1px solid #232836; border-radius: 12px; padding: 36px 30px; width: 90%; max-width: 420px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <div class="brand-mark" style="font-size: 15px; letter-spacing: 2px;">
+            <div class="brand-icon" style="width: 24px; height: 24px;">C</div>
+            CATALYST
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #E8EAF0;">Device Pairing Required</div>
+        <div style="font-size: 12px; color: #9299A8; line-height: 1.5;">Enter the 6-character Pairing PIN displayed in your primary Catalyst terminal:</div>
+
+        <div style="display: flex; gap: 8px; margin: 10px 0;" id="pin-boxes-row">
+            <input type="text" maxlength="1" class="pin-box" id="p-0" oninput="onPinChar(0, event)" onkeydown="onPinKey(0, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="p-1" oninput="onPinChar(1, event)" onkeydown="onPinKey(1, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="p-2" oninput="onPinChar(2, event)" onkeydown="onPinKey(2, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="p-3" oninput="onPinChar(3, event)" onkeydown="onPinKey(3, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="p-4" oninput="onPinChar(4, event)" onkeydown="onPinKey(4, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="p-5" oninput="onPinChar(5, event)" onkeydown="onPinKey(5, event)" />
+        </div>
+
+        <div id="pin-auth-error" style="color: #EF4444; font-size: 11px; min-height: 16px;"></div>
+
+        <button class="btn btn-accent" id="pin-unlock-btn" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 600;" onclick="submitEnteredPIN()">
+            Unlock Workspace
+        </button>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Or scan the pairing QR code from your phone camera</div>
+    </div>
+</div>
 
 <header>
     <div class="header-left" style="position: relative;">
@@ -1183,7 +1233,8 @@ let ws = null;
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const token = localStorage.getItem('catalystToken') || '';
+    const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
 
     ws = new WebSocket(wsUrl);
 
@@ -1548,26 +1599,126 @@ function copyPairingLink() {
     });
 }
 
-// Check for PIN in query string for auto-pairing
-(async function checkURLPIN() {
-    const params = new URLSearchParams(window.location.search);
-    const pin = params.get('pin');
-    if (pin) {
-        try {
-            const res = await fetch(`/api/pairing/verify?pin=${encodeURIComponent(pin)}`, { method: 'POST' });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.token) {
-                    localStorage.setItem('catalystToken', data.token);
-                }
-            }
-        } catch (e) {
-            console.error('Auto-pairing error:', e);
-        }
-        // Clean URL parameter from address bar
-        window.history.replaceState({}, document.title, window.location.pathname);
+// ---------------- Mandatory Authentication & Pairing System ----------------
+const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+let isAuthenticated = isLocalHost;
+
+async function checkAuthentication() {
+    // 1. Localhost is automatically authenticated
+    if (isLocalHost) {
+        const lock = document.getElementById('auth-lock-screen');
+        if (lock) lock.style.display = 'none';
+        return true;
     }
-})();
+
+    // 2. Check for URL query ?pin=XXXXXX (e.g. from scanning QR code)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pinParam = urlParams.get('pin');
+    if (pinParam) {
+        const ok = await verifyAndUnlock(pinParam);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (ok) return true;
+    }
+
+    // 3. Check for existing stored session token
+    const storedToken = localStorage.getItem('catalystToken');
+    if (storedToken) {
+        try {
+            const res = await fetch(`/api/pairing/verify?token=${encodeURIComponent(storedToken)}`, { method: 'POST' });
+            if (res.ok) {
+                const lock = document.getElementById('auth-lock-screen');
+                if (lock) lock.style.display = 'none';
+                isAuthenticated = true;
+                return true;
+            }
+        } catch (e) {}
+    }
+
+    // 4. Lock workspace and prompt for PIN
+    const lock = document.getElementById('auth-lock-screen');
+    if (lock) lock.style.display = 'flex';
+    setTimeout(() => {
+        const p0 = document.getElementById('p-0');
+        if (p0) p0.focus();
+    }, 150);
+    return false;
+}
+
+function getEnteredPIN() {
+    let pin = '';
+    for (let i = 0; i < 6; i++) {
+        const el = document.getElementById(`p-${i}`);
+        if (el) pin += el.value.trim();
+    }
+    return pin.toUpperCase();
+}
+
+async function verifyAndUnlock(pin) {
+    const errBox = document.getElementById('pin-auth-error');
+    const btn = document.getElementById('pin-unlock-btn');
+    if (btn) btn.disabled = true;
+    if (errBox) errBox.innerText = '';
+
+    try {
+        const res = await fetch(`/api/pairing/verify?pin=${encodeURIComponent(pin)}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success && data.token) {
+            localStorage.setItem('catalystToken', data.token);
+            const lock = document.getElementById('auth-lock-screen');
+            if (lock) lock.style.display = 'none';
+            isAuthenticated = true;
+            reloadFrame();
+            loadPairingStatus();
+            return true;
+        } else {
+            if (errBox) errBox.innerText = data.error || 'Invalid pairing code. Check your primary terminal.';
+            for (let i = 0; i < 6; i++) {
+                const el = document.getElementById(`p-${i}`);
+                if (el) el.value = '';
+            }
+            const p0 = document.getElementById('p-0');
+            if (p0) p0.focus();
+        }
+    } catch (e) {
+        if (errBox) errBox.innerText = 'Error connecting to Catalyst server: ' + e.message;
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+    return false;
+}
+
+function submitEnteredPIN() {
+    const pin = getEnteredPIN();
+    if (pin.length !== 6) {
+        const errBox = document.getElementById('pin-auth-error');
+        if (errBox) errBox.innerText = 'Please enter all 6 characters.';
+        return;
+    }
+    verifyAndUnlock(pin);
+}
+
+function onPinChar(idx, e) {
+    const val = e.target.value;
+    if (val && idx < 5) {
+        const next = document.getElementById(`p-${idx + 1}`);
+        if (next) next.focus();
+    }
+    if (getEnteredPIN().length === 6) {
+        submitEnteredPIN();
+    }
+}
+
+function onPinKey(idx, e) {
+    if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+        const prev = document.getElementById(`p-${idx - 1}`);
+        if (prev) prev.focus();
+    }
+    if (e.key === 'Enter') {
+        submitEnteredPIN();
+    }
+}
+
+checkAuthentication();
 
 // ---------------- Settings Modal ----------------
 async function openSettingsModal() {
