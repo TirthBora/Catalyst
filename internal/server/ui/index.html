@@ -690,6 +690,13 @@
                 <span class="preset-chip" id="proxy-chip" style="display: none;" onclick="setProxyTarget()">Proxy Dev</span>
             </div>
 
+            <!-- Dev Server Runner Controls -->
+            <div class="dev-runner-bar" id="dev-runner-bar" style="display: none; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid var(--border);">
+                <select id="dev-script-select" style="background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-primary); font-size: 11px; padding: 4px 6px; border-radius: 4px; outline: none;"></select>
+                <button class="btn btn-accent" id="dev-run-btn" style="padding: 4px 10px; font-size: 11px;" onclick="toggleDevServer()">▶ Run</button>
+                <button class="btn" id="dev-restart-btn" style="display: none; padding: 4px 8px; font-size: 11px;" onclick="restartDevServer()" title="Restart Dev Server">⟳</button>
+            </div>
+
             <div class="viewport-modes">
                 <button class="mode-btn active" id="mode-full" onclick="setViewport('full')">Full</button>
                 <button class="mode-btn" id="mode-tablet" onclick="setViewport('tablet')">Tablet</button>
@@ -1108,7 +1115,10 @@ function connect() {
                 addLogEntry(`Switched to workspace: ${data.payload.name}`, 'system');
                 loadWorkspaceMetadata();
                 loadConfig();
+                loadDevScripts();
                 reloadFrame();
+            } else if (data.type === 'DEV_SERVER_STATE') {
+                updateDevServerUI(data.payload.running);
             }
         } catch (err) {
             console.error('Invalid WebSocket message:', err);
@@ -1421,6 +1431,96 @@ document.addEventListener('click', () => {
     const menu = document.getElementById('ws-menu');
     if (menu) menu.style.display = 'none';
 });
+
+// ---------------- Dev Server Runner ----------------
+let isDevServerRunning = false;
+
+async function loadDevScripts() {
+    try {
+        const res = await fetch('/api/dev/scripts');
+        if (!res.ok) return;
+        const data = await res.json();
+        const select = document.getElementById('dev-script-select');
+        const bar = document.getElementById('dev-runner-bar');
+
+        if (data.scripts && data.scripts.length > 0) {
+            select.innerHTML = '';
+            data.scripts.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.name;
+                opt.innerText = `${s.name} (${s.command})`;
+                select.appendChild(opt);
+            });
+            bar.style.display = 'flex';
+        } else {
+            bar.style.display = 'none';
+        }
+
+        updateDevServerUI(data.running);
+    } catch (err) {
+        console.error('Failed to load dev scripts:', err);
+    }
+}
+loadDevScripts();
+
+function updateDevServerUI(running) {
+    isDevServerRunning = running;
+    const runBtn = document.getElementById('dev-run-btn');
+    const restartBtn = document.getElementById('dev-restart-btn');
+
+    if (running) {
+        runBtn.innerText = '■ Stop';
+        runBtn.style.background = 'var(--error)';
+        runBtn.style.borderColor = 'var(--error)';
+        restartBtn.style.display = 'inline-flex';
+    } else {
+        runBtn.innerText = '▶ Run';
+        runBtn.style.background = 'var(--accent)';
+        runBtn.style.borderColor = 'var(--accent)';
+        restartBtn.style.display = 'none';
+    }
+}
+
+async function toggleDevServer() {
+    const select = document.getElementById('dev-script-select');
+
+    if (isDevServerRunning) {
+        try {
+            await fetch('/api/dev/stop', { method: 'POST' });
+            updateDevServerUI(false);
+        } catch (err) {
+            console.error('Failed to stop dev server:', err);
+        }
+    } else {
+        const script = select.value;
+        if (!script) return;
+        try {
+            switchRightPane('proc');
+            const res = await fetch('/api/dev/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script })
+            });
+            if (res.ok) {
+                updateDevServerUI(true);
+            }
+        } catch (err) {
+            console.error('Failed to start dev server:', err);
+        }
+    }
+}
+
+async function restartDevServer() {
+    try {
+        switchRightPane('proc');
+        const res = await fetch('/api/dev/restart', { method: 'POST' });
+        if (res.ok) {
+            updateDevServerUI(true);
+        }
+    } catch (err) {
+        console.error('Failed to restart dev server:', err);
+    }
+}
 
 connect();
 </script>
