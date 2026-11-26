@@ -29,15 +29,33 @@ func getLocalIP() string {
 	if err != nil {
 		return "localhost"
 	}
+
+	var fallbackIP string
 	for _, addr := range addrs {
 		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
 				ip := ipnet.IP.String()
-				if !strings.HasPrefix(ip, "169.254.") {
+				// Skip APIPA / link-local addresses
+				if strings.HasPrefix(ip, "169.254.") {
+					continue
+				}
+				// Skip Cloudflare WARP internal tunnel
+				if strings.HasPrefix(ip, "172.16.") {
+					continue
+				}
+				// Prioritize standard Wi-Fi / LAN subnets (192.168.x.x and 10.x.x.x)
+				if strings.HasPrefix(ip, "192.168.") || strings.HasPrefix(ip, "10.") {
 					return ip
+				}
+				if fallbackIP == "" {
+					fallbackIP = ip
 				}
 			}
 		}
+	}
+
+	if fallbackIP != "" {
+		return fallbackIP
 	}
 	return "localhost"
 }
