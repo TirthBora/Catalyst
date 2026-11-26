@@ -17,6 +17,7 @@ import (
 	"catalyst/internal/config"
 	"catalyst/internal/monitor"
 	"catalyst/internal/pairing"
+	"catalyst/internal/plugin"
 	"catalyst/internal/process"
 	"catalyst/internal/project"
 	"catalyst/internal/proxy"
@@ -42,11 +43,12 @@ type Server struct {
 	workspaceReg *workspace.Registry
 	watcher      *watcher.Watcher
 	relayClient  *relay.Client
+	pluginMgr    *plugin.Manager
 	httpServer   *http.Server
 	mu           sync.Mutex
 }
 
-func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager, wsReg *workspace.Registry, w *watcher.Watcher, rClient *relay.Client) *Server {
+func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager, wsReg *workspace.Registry, w *watcher.Watcher, rClient *relay.Client, plugMgr *plugin.Manager) *Server {
 	if pm == nil {
 		pm = process.NewManager(hub)
 	}
@@ -58,6 +60,9 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 	}
 	if wsReg == nil {
 		wsReg = workspace.NewRegistry(projectRoot)
+	}
+	if plugMgr == nil {
+		plugMgr = plugin.NewManager(projectRoot)
 	}
 	return &Server{
 		hub:          hub,
@@ -71,6 +76,7 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 		workspaceReg: wsReg,
 		watcher:      w,
 		relayClient:  rClient,
+		pluginMgr:    plugMgr,
 	}
 }
 
@@ -310,6 +316,54 @@ func (s *Server) Handler() (http.Handler, error) {
 		_ = json.NewEncoder(w).Encode(analysis)
 	})
 
+	// Plugin and custom action shortcuts endpoints
+	mux.HandleFunc("/api/plugins", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		s.mu.Lock()
+		pm := s.pluginMgr
+		s.mu.Unlock()
+
+		data := map[string]interface{}{
+			"plugins": pm.Plugins(),
+			"actions": pm.Actions(),
+		}
+		_ = json.NewEncoder(w).Encode(data)
+	})
+
+	mux.HandleFunc("/api/plugins/execute", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			ActionID string `json:"actionId"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.ActionID) == "" {
+			http.Error(w, "Action ID required", http.StatusBadRequest)
+			return
+		}
+
+		s.mu.Lock()
+		pm := s.pluginMgr
+		workDir := s.projectRoot
+		s.mu.Unlock()
+
+		act, err := pm.GetAction(body.ActionID)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		p, err := s.processMgr.Start("plugin-"+act.ID, act.Command, act.Args, workDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(p)
+	})
+
 	// Multi-workspace management endpoints
 	mux.HandleFunc("/api/workspaces", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -357,6 +411,7 @@ func (s *Server) Handler() (http.Handler, error) {
 		s.projectRoot = ws.Path
 		s.projectInfo = ws.Project
 		s.configMgr = config.NewManager(ws.Path)
+		s.pluginMgr = plugin.NewManager(ws.Path)
 
 		if s.watcher != nil {
 			_ = s.watcher.SwitchRoot(ws.Path)

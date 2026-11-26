@@ -164,7 +164,7 @@ func main() {
 	pm := process.NewManager(hub)
 
 	// 4. Boot the HTTP Server
-	srv := server.NewServer(port, hub, dir, pm, pairingMgr, cfgMgr, nil, w, rClient)
+	srv := server.NewServer(port, hub, dir, pm, pairingMgr, cfgMgr, nil, w, rClient, nil)
 
 	// Intercept shutdown signals
 	sigChan := make(chan os.Signal, 1)

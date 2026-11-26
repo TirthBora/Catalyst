@@ -31,7 +31,7 @@ func TestServerHandler(t *testing.T) {
 	}
 
 	hub := websocket.NewHub()
-	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil, nil, nil, nil)
+	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil, nil, nil, nil, nil)
 
 	handler, err := srv.Handler()
 	if err != nil {
@@ -294,6 +294,24 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(analyzeRec.Body.String(), "missing_dependency") {
 		t.Errorf("expected missing_dependency category, got: %s", analyzeRec.Body.String())
 	}
+
+	// 23. Test Plugins List API (GET /api/plugins)
+	plugReq := httptest.NewRequest(http.MethodGet, "/api/plugins", nil)
+	plugRec := httptest.NewRecorder()
+	handler.ServeHTTP(plugRec, plugReq)
+
+	if plugRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for GET /api/plugins, got %d", plugRec.Code)
+	}
+
+	// 24. Test Plugin Execute unvetted action (POST /api/plugins/execute) -> should reject
+	plugExecReq := httptest.NewRequest(http.MethodPost, "/api/plugins/execute", strings.NewReader(`{"actionId": "nonexistent"}`))
+	plugExecRec := httptest.NewRecorder()
+	handler.ServeHTTP(plugExecRec, plugExecReq)
+
+	if plugExecRec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for nonexistent plugin action, got %d", plugExecRec.Code)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -309,7 +327,7 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Use an open high-numbered port for testing
 	port := "19998"
-	srv := server.NewServer(port, hub, tempDir, nil, nil, nil, nil, nil, nil)
+	srv := server.NewServer(port, hub, tempDir, nil, nil, nil, nil, nil, nil, nil)
 
 	errChan := make(chan error, 1)
 	go func() {
