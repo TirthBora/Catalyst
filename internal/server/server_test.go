@@ -2,6 +2,8 @@ package server_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,7 +31,7 @@ func TestServerHandler(t *testing.T) {
 	}
 
 	hub := websocket.NewHub()
-	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil)
+	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil, nil, nil)
 
 	handler, err := srv.Handler()
 	if err != nil {
@@ -183,6 +185,45 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(cfgPostRec.Body.String(), "/proxy/5173/") {
 		t.Errorf("expected updated target in response, got: %s", cfgPostRec.Body.String())
 	}
+
+	// 13. Test Workspace List API (GET /api/workspaces)
+	wsListReq := httptest.NewRequest(http.MethodGet, "/api/workspaces", nil)
+	wsListRec := httptest.NewRecorder()
+	handler.ServeHTTP(wsListRec, wsListReq)
+
+	if wsListRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for GET /api/workspaces, got %d", wsListRec.Code)
+	}
+	if !strings.Contains(wsListRec.Body.String(), filepath.Base(tempDir)) {
+		t.Errorf("expected initial workspace in list, got: %s", wsListRec.Body.String())
+	}
+
+	// 14. Test Workspace Register API (POST /api/workspaces)
+	dir2 := t.TempDir()
+	wsPostReq := httptest.NewRequest(http.MethodPost, "/api/workspaces", strings.NewReader(fmt.Sprintf(`{"path": %q}`, dir2)))
+	wsPostRec := httptest.NewRecorder()
+	handler.ServeHTTP(wsPostRec, wsPostReq)
+
+	if wsPostRec.Code != http.StatusCreated {
+		t.Fatalf("expected status 201 for POST /api/workspaces, got %d", wsPostRec.Code)
+	}
+
+	var newWS struct {
+		ID string `json:"id"`
+	}
+	_ = json.Unmarshal(wsPostRec.Body.Bytes(), &newWS)
+
+	// 15. Test Workspace Switch API (POST /api/workspaces/switch)
+	switchReq := httptest.NewRequest(http.MethodPost, "/api/workspaces/switch", strings.NewReader(fmt.Sprintf(`{"id": %q}`, newWS.ID)))
+	switchRec := httptest.NewRecorder()
+	handler.ServeHTTP(switchRec, switchReq)
+
+	if switchRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for POST /api/workspaces/switch, got %d", switchRec.Code)
+	}
+	if !strings.Contains(switchRec.Body.String(), newWS.ID) {
+		t.Errorf("expected switched workspace ID in response, got: %s", switchRec.Body.String())
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -198,7 +239,7 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Use an open high-numbered port for testing
 	port := "19998"
-	srv := server.NewServer(port, hub, tempDir, nil, nil, nil)
+	srv := server.NewServer(port, hub, tempDir, nil, nil, nil, nil, nil)
 
 	errChan := make(chan error, 1)
 	go func() {

@@ -20,25 +20,29 @@ import (
 	"catalyst/internal/project"
 	"catalyst/internal/proxy"
 	"catalyst/internal/runtime"
+	"catalyst/internal/watcher"
 	"catalyst/internal/websocket"
+	"catalyst/internal/workspace"
 )
 
 //go:embed ui/*
 var uiFS embed.FS
 
 type Server struct {
-	hub         *websocket.Hub
-	port        string
-	projectRoot string
-	projectInfo project.Info
-	processMgr  *process.Manager
-	pairingMgr  *pairing.Manager
-	configMgr   *config.Manager
-	httpServer  *http.Server
-	mu          sync.Mutex
+	hub          *websocket.Hub
+	port         string
+	projectRoot  string
+	projectInfo  project.Info
+	processMgr   *process.Manager
+	pairingMgr   *pairing.Manager
+	configMgr    *config.Manager
+	workspaceReg *workspace.Registry
+	watcher      *watcher.Watcher
+	httpServer   *http.Server
+	mu           sync.Mutex
 }
 
-func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager) *Server {
+func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager, wsReg *workspace.Registry, w *watcher.Watcher) *Server {
 	if pm == nil {
 		pm = process.NewManager(hub)
 	}
@@ -48,14 +52,19 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 	if cfgMgr == nil {
 		cfgMgr = config.NewManager(projectRoot)
 	}
+	if wsReg == nil {
+		wsReg = workspace.NewRegistry(projectRoot)
+	}
 	return &Server{
-		hub:         hub,
-		port:        port,
-		projectRoot: projectRoot,
-		projectInfo: project.Detect(projectRoot),
-		processMgr:  pm,
-		pairingMgr:  pairingMgr,
-		configMgr:   cfgMgr,
+		hub:          hub,
+		port:         port,
+		projectRoot:  projectRoot,
+		projectInfo:  project.Detect(projectRoot),
+		processMgr:   pm,
+		pairingMgr:   pairingMgr,
+		configMgr:    cfgMgr,
+		workspaceReg: wsReg,
+		watcher:      w,
 	}
 }
 
@@ -104,6 +113,76 @@ func (s *Server) Handler() (http.Handler, error) {
 	mux.HandleFunc("/api/processes", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(s.processMgr.List())
+	})
+
+	// Multi-workspace management endpoints
+	mux.HandleFunc("/api/workspaces", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			var body struct {
+				Path string `json:"path"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Path) == "" {
+				http.Error(w, "Invalid workspace path", http.StatusBadRequest)
+				return
+			}
+			if _, err := os.Stat(body.Path); err != nil {
+				http.Error(w, "Directory does not exist", http.StatusBadRequest)
+				return
+			}
+			ws := s.workspaceReg.Register(body.Path)
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(ws)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(s.workspaceReg.List())
+	})
+
+	mux.HandleFunc("/api/workspaces/switch", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			ID string `json:"id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.ID) == "" {
+			http.Error(w, "Workspace ID required", http.StatusBadRequest)
+			return
+		}
+
+		s.mu.Lock()
+		ws, err := s.workspaceReg.SetActive(body.ID)
+		if err != nil {
+			s.mu.Unlock()
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		s.projectRoot = ws.Path
+		s.projectInfo = ws.Project
+		s.configMgr = config.NewManager(ws.Path)
+
+		if s.watcher != nil {
+			_ = s.watcher.SwitchRoot(ws.Path)
+			if custom := s.configMgr.Get().CustomIgnore; len(custom) > 0 {
+				s.watcher.SetCustomIgnore(custom)
+			}
+		}
+		s.mu.Unlock()
+
+		if s.hub != nil {
+			s.hub.Broadcast("WORKSPACE_CHANGED", map[string]interface{}{
+				"id":        ws.ID,
+				"name":      ws.Name,
+				"path":      ws.Path,
+				"type":      ws.Project.Type,
+				"framework": ws.Project.Framework,
+			})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ws)
 	})
 
 	// Workspace configuration endpoint (GET & POST)
