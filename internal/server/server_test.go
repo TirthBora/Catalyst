@@ -272,6 +272,28 @@ func TestServerHandler(t *testing.T) {
 	if inputRec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 when writing input to non-running dev server, got %d", inputRec.Code)
 	}
+
+	// 21. Test Assistant Insights API (GET /api/assistant/insights)
+	asstReq := httptest.NewRequest(http.MethodGet, "/api/assistant/insights", nil)
+	asstRec := httptest.NewRecorder()
+	handler.ServeHTTP(asstRec, asstReq)
+
+	if asstRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for GET /api/assistant/insights, got %d", asstRec.Code)
+	}
+
+	// 22. Test Assistant Analyze API (POST /api/assistant/analyze)
+	analyzeBody := strings.NewReader(`{"logs": ["Error: Cannot find module 'react'"]}`)
+	analyzeReq := httptest.NewRequest(http.MethodPost, "/api/assistant/analyze", analyzeBody)
+	analyzeRec := httptest.NewRecorder()
+	handler.ServeHTTP(analyzeRec, analyzeReq)
+
+	if analyzeRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for POST /api/assistant/analyze, got %d", analyzeRec.Code)
+	}
+	if !strings.Contains(analyzeRec.Body.String(), "missing_dependency") {
+		t.Errorf("expected missing_dependency category, got: %s", analyzeRec.Body.String())
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {

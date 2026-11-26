@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"catalyst/internal/assistant"
 	"catalyst/internal/config"
 	"catalyst/internal/monitor"
 	"catalyst/internal/pairing"
@@ -277,6 +278,36 @@ func (s *Server) Handler() (http.Handler, error) {
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "sent"})
+	})
+
+	// Assistant diagnostic and proactive insight endpoints
+	mux.HandleFunc("/api/assistant/insights", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		s.mu.Lock()
+		root := s.projectRoot
+		info := s.projectInfo
+		s.mu.Unlock()
+
+		insights := assistant.EvaluateWorkspace(root, info)
+		_ = json.NewEncoder(w).Encode(insights)
+	})
+
+	mux.HandleFunc("/api/assistant/analyze", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			Logs []string `json:"logs"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "Invalid analyze payload", http.StatusBadRequest)
+			return
+		}
+
+		analysis := assistant.AnalyzeLogs(body.Logs)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(analysis)
 	})
 
 	// Multi-workspace management endpoints
