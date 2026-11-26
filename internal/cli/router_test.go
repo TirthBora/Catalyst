@@ -26,6 +26,8 @@ func TestParseArgs(t *testing.T) {
 		{[]string{"doctor"}, cli.ActionDoctor},
 		{[]string{"version"}, cli.ActionVersion},
 		{[]string{"--version"}, cli.ActionVersion},
+		{[]string{"install"}, cli.ActionInstall},
+		{[]string{"install-cli"}, cli.ActionInstall},
 		{[]string{"help"}, cli.ActionHelp},
 		{[]string{"--help"}, cli.ActionHelp},
 		{[]string{"-h"}, cli.ActionHelp},

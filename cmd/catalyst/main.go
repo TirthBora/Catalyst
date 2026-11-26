@@ -71,6 +71,15 @@ func main() {
 		fmt.Printf("Catalyst daemon on port %s stopped successfully.\n", opts.Port)
 		return
 
+	case cli.ActionInstall:
+		target, err := cli.InstallCLI()
+		if err != nil {
+			fmt.Printf("Error installing Catalyst CLI: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("✓ Catalyst CLI installed successfully to:\n  %s\n\nYou can now run 'catalyst' from any project directory.\n", target)
+		return
+
 	case cli.ActionDoctor:
 		report := runtime.Diagnose(opts.Dir)
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")

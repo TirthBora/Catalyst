@@ -16,6 +16,7 @@ const (
 	ActionStatus  Action = "status"
 	ActionDoctor  Action = "doctor"
 	ActionVersion Action = "version"
+	ActionInstall Action = "install"
 	ActionHelp    Action = "help"
 )
 
@@ -40,6 +41,7 @@ Available Commands:
   stop       Stop a running Catalyst daemon
   status     Check status of the running Catalyst daemon
   doctor     Diagnose local development toolchains and workspace health
+  install    Install catalyst binary into system PATH for global access
   version    Print Catalyst version and build info
   help       Show this help message
 
@@ -83,6 +85,9 @@ func ParseArgs(args []string) (Options, error) {
 		flagArgs = args[1:]
 	case "version", "-v", "--version":
 		opts.Action = ActionVersion
+		return opts, nil
+	case "install", "install-cli":
+		opts.Action = ActionInstall
 		return opts, nil
 	case "help", "-h", "--help":
 		opts.Action = ActionHelp
