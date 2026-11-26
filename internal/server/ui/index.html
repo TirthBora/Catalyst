@@ -773,6 +773,23 @@
             <div id="devices-list" style="display: flex; flex-direction: column; gap: 6px;">
                 <div style="color: var(--text-muted); font-size: 12px;">No secondary devices connected yet.</div>
             </div>
+
+            <!-- Cloud Relay (WAN) Section -->
+            <div class="diag-section-title" style="margin-top: 14px;">Cloud Relay (WAN Remote Access)</div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12px; font-weight: 600;">Relay Status:</span>
+                    <span id="relay-status-pill" class="log-pill pill-system">Disconnected</span>
+                </div>
+                <div id="relay-session-row" style="display: none; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border-subtle);">
+                    <span style="font-size: 11px; color: var(--text-muted);">WAN Session ID:</span>
+                    <span id="relay-session-display" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent);">--</span>
+                </div>
+                <div id="relay-connect-form" style="display: flex; gap: 6px; margin-top: 4px;">
+                    <input type="text" id="relay-url-input" style="flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--text-primary); outline: none;" placeholder="wss://your-relay-tunnel.com/ws" />
+                    <button class="btn btn-accent" style="padding: 4px 10px; font-size: 11px;" onclick="connectRelayTunnel()">Connect</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1248,7 +1265,51 @@ loadPairingStatus();
 
 async function openPairingModal() {
     await loadPairingStatus();
+    await loadRelayStatus();
     document.getElementById('pairing-modal').style.display = 'flex';
+}
+
+async function loadRelayStatus() {
+    try {
+        const res = await fetch('/api/relay');
+        if (!res.ok) return;
+        const data = await res.json();
+        const pill = document.getElementById('relay-status-pill');
+        const sessionRow = document.getElementById('relay-session-row');
+        const sessionDisplay = document.getElementById('relay-session-display');
+        const form = document.getElementById('relay-connect-form');
+
+        if (data.state === 'connected') {
+            pill.className = 'log-pill pill-write';
+            pill.innerText = 'Connected';
+            sessionRow.style.display = 'flex';
+            sessionDisplay.innerText = data.sessionId || '--';
+            form.style.display = 'none';
+        } else {
+            pill.className = 'log-pill pill-system';
+            pill.innerText = 'Disconnected';
+            sessionRow.style.display = 'none';
+            form.style.display = 'flex';
+        }
+    } catch (e) {
+        console.error('Failed to load relay status:', e);
+    }
+}
+
+async function connectRelayTunnel() {
+    const input = document.getElementById('relay-url-input');
+    const url = input.value.trim();
+    if (!url) return;
+    try {
+        await fetch('/api/relay/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ relayUrl: url })
+        });
+        setTimeout(loadRelayStatus, 1000);
+    } catch (e) {
+        console.error('Failed to connect relay tunnel:', e);
+    }
 }
 
 function closePairingModal(event) {
