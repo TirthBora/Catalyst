@@ -591,6 +591,29 @@
             color: #60A5FA;
         }
 
+        .term-line.stdin {
+            color: #38BDF8;
+            font-weight: 600;
+        }
+
+        .alert-toast {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--warning);
+            padding: 10px 14px;
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            font-size: 12px;
+            max-width: 320px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-toast.critical {
+            border-left-color: var(--error);
+        }
+
         .term-time {
             color: var(--text-muted);
             font-size: 10px;
@@ -744,6 +767,11 @@
         <div id="view-proc" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
             <div class="terminal-container" id="terminal-logs">
                 <div class="term-line system"><span class="term-time">[SYSTEM]</span> Ready for process output.</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg-panel); border-top: 1px solid var(--border);">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent); user-select: none;">$</span>
+                <input type="text" id="term-input" placeholder="Type input to dev server (e.g. rs, y, h)..." style="flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-mono); font-size: 11px; color: var(--text-primary);" onkeydown="handleTermKey(event)" />
+                <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="sendTermInput()">Send</button>
             </div>
         </div>
     </div>
@@ -1136,6 +1164,8 @@ function connect() {
                 reloadFrame();
             } else if (data.type === 'DEV_SERVER_STATE') {
                 updateDevServerUI(data.payload.running);
+            } else if (data.type === 'SYSTEM_ALERT') {
+                showAlertToast(data.payload.severity, data.payload.message);
             }
         } catch (err) {
             console.error('Invalid WebSocket message:', err);
@@ -1583,8 +1613,56 @@ async function restartDevServer() {
     }
 }
 
+// ---------------- Terminal Interactive Stdin ----------------
+async function sendTermInput() {
+    const input = document.getElementById('term-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    try {
+        await fetch('/api/dev/input', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+    } catch (e) {
+        console.error('Failed to send terminal input:', e);
+    }
+}
+
+function handleTermKey(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        sendTermInput();
+    }
+}
+
+// ---------------- Alert Toasts ----------------
+function showAlertToast(severity, message) {
+    const container = document.getElementById('alert-toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `alert-toast ${severity === 'critical' ? 'critical' : ''}`;
+    toast.innerHTML = `
+        <div style="font-size: 14px;">${severity === 'critical' ? '⚠️' : 'ℹ️'}</div>
+        <div style="flex: 1;">${message}</div>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 6000);
+}
+
 connect();
 </script>
+
+<!-- Alert Toast Container -->
+<div id="alert-toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px;"></div>
 
 </body>
 </html>
