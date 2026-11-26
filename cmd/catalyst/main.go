@@ -114,6 +114,9 @@ func main() {
 			if hub.ClientCount() > 0 {
 				stats := monitor.GetStats()
 				hub.Broadcast("SYSTEM_STATS", stats)
+				if alerts := monitor.CheckAlerts(stats, 85.0); len(alerts) > 0 {
+					hub.Broadcast("SYSTEM_ALERT", alerts[0])
+				}
 			}
 		}
 	}()

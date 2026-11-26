@@ -1,10 +1,42 @@
 package monitor
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"time"
 )
+
+// Alert represents a high-utilization resource warning.
+type Alert struct {
+	Type      string    `json:"type"`     // "memory"
+	Severity  string    `json:"severity"` // "warning", "critical"
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// CheckAlerts evaluates system metrics against warning thresholds.
+func CheckAlerts(stats Stats, maxRAMPct float64) []Alert {
+	var alerts []Alert
+	if maxRAMPct <= 0 {
+		maxRAMPct = 85.0
+	}
+
+	if stats.Memory.UsedPct >= maxRAMPct {
+		severity := "warning"
+		if stats.Memory.UsedPct >= 95.0 {
+			severity = "critical"
+		}
+		alerts = append(alerts, Alert{
+			Type:      "memory",
+			Severity:  severity,
+			Message:   fmt.Sprintf("High memory usage: %.1f%% used (%d / %d MB)", stats.Memory.UsedPct, stats.Memory.UsedMB, stats.Memory.TotalMB),
+			Timestamp: time.Now().UTC(),
+		})
+	}
+
+	return alerts
+}
 
 // Stats holds host and runtime system metrics.
 type Stats struct {
