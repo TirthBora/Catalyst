@@ -529,6 +529,40 @@
             font-size: 12px;
         }
 
+        /* ---------------- Workspace Dropdown ---------------- */
+        .ws-dropdown-menu {
+            position: absolute;
+            top: 48px;
+            left: 120px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            min-width: 260px;
+            z-index: 500;
+            padding: 6px 4px;
+        }
+
+        .ws-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.15s;
+        }
+
+        .ws-item:hover {
+            background: var(--bg-elevated);
+        }
+
+        .ws-item.active {
+            background: var(--bg-secondary);
+            border-left: 2px solid var(--accent);
+        }
+
         /* ---------------- Terminal View ---------------- */
         .terminal-container {
             flex: 1;
@@ -591,15 +625,27 @@
 <body>
 
 <header>
-    <div class="header-left">
+    <div class="header-left" style="position: relative;">
         <div class="brand-mark">
             <div class="brand-icon">C</div>
             CATALYST
         </div>
-        <div class="workspace-chip" id="ws-chip">
+        <div class="workspace-chip" id="ws-chip" style="cursor: pointer; user-select: none;" onclick="toggleWorkspaceMenu(event)">
             <span id="ws-name">Workspace</span>
+            <span style="font-size: 8px; color: var(--text-muted); margin-left: 2px;">▼</span>
         </div>
         <div class="badge" id="ws-badge">Detecting...</div>
+
+        <!-- Workspace Dropdown Menu -->
+        <div class="ws-dropdown-menu" id="ws-menu" style="display: none;" onclick="event.stopPropagation()">
+            <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); padding: 6px 10px; text-transform: uppercase;">Switch Project</div>
+            <div id="ws-menu-list" style="display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto;">
+                <!-- dynamic workspace items -->
+            </div>
+            <div style="border-top: 1px solid var(--border); margin-top: 6px; padding: 6px 8px;">
+                <button class="btn" style="width: 100%; font-size: 11px; padding: 4px 8px;" onclick="promptAddWorkspace()">+ Add Project Path</button>
+            </div>
+        </div>
     </div>
 
     <div class="header-right">
@@ -1056,6 +1102,13 @@ function connect() {
                 appendTerminalLine('system', `Process started: ${data.payload.command} (PID: ${data.payload.pid})`);
             } else if (data.type === 'PROCESS_STOPPED') {
                 appendTerminalLine('system', `Process stopped (Exit code: ${data.payload.exitCode})`);
+            } else if (data.type === 'WORKSPACE_CHANGED') {
+                wsName.innerText = data.payload.name;
+                wsBadge.innerText = data.payload.framework || data.payload.type || 'Workspace';
+                addLogEntry(`Switched to workspace: ${data.payload.name}`, 'system');
+                loadWorkspaceMetadata();
+                loadConfig();
+                reloadFrame();
             }
         } catch (err) {
             console.error('Invalid WebSocket message:', err);
@@ -1283,6 +1336,91 @@ async function saveSettings() {
         console.error('Failed to save settings:', err);
     }
 }
+
+// ---------------- Workspace Switcher ----------------
+async function toggleWorkspaceMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('ws-menu');
+    const isVisible = menu.style.display === 'block';
+
+    if (isVisible) {
+        menu.style.display = 'none';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/workspaces');
+        if (!res.ok) return;
+        const list = await res.json();
+        const container = document.getElementById('ws-menu-list');
+
+        let html = '';
+        (list || []).forEach(w => {
+            const activeClass = w.active ? 'active' : '';
+            const fw = w.project?.framework || w.project?.type || 'Generic';
+            html += `
+                <div class="ws-item ${activeClass}" onclick="switchWorkspace('${w.id}')">
+                    <div>
+                        <div style="font-weight: 600;">${w.name}</div>
+                        <div style="font-size: 10px; color: var(--text-muted);">${w.path}</div>
+                    </div>
+                    <span class="badge" style="font-size: 9px; padding: 1px 5px;">${fw}</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        menu.style.display = 'block';
+    } catch (err) {
+        console.error('Failed to load workspaces:', err);
+    }
+}
+
+async function switchWorkspace(id) {
+    try {
+        const res = await fetch('/api/workspaces/switch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        if (res.ok) {
+            const wsData = await res.json();
+            wsName.innerText = wsData.name;
+            wsBadge.innerText = wsData.project?.framework || wsData.project?.type || 'Workspace';
+            document.getElementById('ws-menu').style.display = 'none';
+            await loadWorkspaceMetadata();
+            await loadConfig();
+            reloadFrame();
+        }
+    } catch (err) {
+        console.error('Failed to switch workspace:', err);
+    }
+}
+
+async function promptAddWorkspace() {
+    const path = prompt('Enter absolute path to local development project:');
+    if (!path || !path.trim()) return;
+
+    try {
+        const res = await fetch('/api/workspaces', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path.trim() })
+        });
+        if (res.ok) {
+            const newWs = await res.json();
+            await switchWorkspace(newWs.id);
+        } else {
+            alert('Failed to add project. Ensure the directory exists on your computer.');
+        }
+    } catch (err) {
+        alert('Error adding workspace: ' + err.message);
+    }
+}
+
+document.addEventListener('click', () => {
+    const menu = document.getElementById('ws-menu');
+    if (menu) menu.style.display = 'none';
+});
 
 connect();
 </script>
