@@ -29,7 +29,7 @@ func TestServerHandler(t *testing.T) {
 	}
 
 	hub := websocket.NewHub()
-	srv := server.NewServer("9999", hub, tempDir)
+	srv := server.NewServer("9999", hub, tempDir, nil)
 
 	handler, err := srv.Handler()
 	if err != nil {
@@ -111,6 +111,19 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(docBody, "toolchains") {
 		t.Errorf("expected JSON with toolchains in /api/doctor, got: %s", docBody)
 	}
+
+	// 7. Test Process Monitoring API (GET /api/processes)
+	procReq := httptest.NewRequest(http.MethodGet, "/api/processes", nil)
+	procRec := httptest.NewRecorder()
+	handler.ServeHTTP(procRec, procReq)
+
+	if procRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for /api/processes, got %d", procRec.Code)
+	}
+	procBody := procRec.Body.String()
+	if !strings.HasPrefix(strings.TrimSpace(procBody), "[") {
+		t.Errorf("expected JSON array in /api/processes, got: %s", procBody)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -126,7 +139,7 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Use an open high-numbered port for testing
 	port := "19998"
-	srv := server.NewServer(port, hub, tempDir)
+	srv := server.NewServer(port, hub, tempDir, nil)
 
 	errChan := make(chan error, 1)
 	go func() {

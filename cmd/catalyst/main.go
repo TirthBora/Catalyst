@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"catalyst/internal/monitor"
+	"catalyst/internal/process"
 	"catalyst/internal/runtime"
 	"catalyst/internal/server"
 	"catalyst/internal/watcher"
@@ -125,8 +126,11 @@ func main() {
 	fmt.Printf("  Open on your Secondary Device: http://%s:%s\n", localIP, port)
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-	// 3. Boot the HTTP Server
-	srv := server.NewServer(port, hub, dir)
+	// 3. Boot the Process Manager
+	pm := process.NewManager(hub)
+
+	// 4. Boot the HTTP Server
+	srv := server.NewServer(port, hub, dir, pm)
 
 	// Intercept shutdown signals
 	sigChan := make(chan os.Signal, 1)
@@ -136,6 +140,7 @@ func main() {
 		<-sigChan
 		fmt.Println("\nShutting down Catalyst...")
 		w.Close()
+		pm.StopAll()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

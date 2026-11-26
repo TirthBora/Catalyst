@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"catalyst/internal/monitor"
+	"catalyst/internal/process"
 	"catalyst/internal/project"
 	"catalyst/internal/proxy"
 	"catalyst/internal/runtime"
@@ -25,16 +26,21 @@ type Server struct {
 	port        string
 	projectRoot string
 	projectInfo project.Info
+	processMgr  *process.Manager
 	httpServer  *http.Server
 	mu          sync.Mutex
 }
 
-func NewServer(port string, hub *websocket.Hub, projectRoot string) *Server {
+func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager) *Server {
+	if pm == nil {
+		pm = process.NewManager(hub)
+	}
 	return &Server{
 		hub:         hub,
 		port:        port,
 		projectRoot: projectRoot,
 		projectInfo: project.Detect(projectRoot),
+		processMgr:  pm,
 	}
 }
 
@@ -77,6 +83,12 @@ func (s *Server) Handler() (http.Handler, error) {
 		w.Header().Set("Content-Type", "application/json")
 		report := runtime.Diagnose(s.projectRoot)
 		_ = json.NewEncoder(w).Encode(report)
+	})
+
+	// Process observation endpoint (read-only monitoring of supervised processes)
+	mux.HandleFunc("/api/processes", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(s.processMgr.List())
 	})
 
 	// Reverse proxy endpoint for local development servers
@@ -125,6 +137,11 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Terminate all supervised child processes to prevent orphans
+	if s.processMgr != nil {
+		s.processMgr.StopAll()
+	}
 
 	if s.httpServer == nil {
 		return nil
