@@ -29,7 +29,7 @@ func TestServerHandler(t *testing.T) {
 	}
 
 	hub := websocket.NewHub()
-	srv := server.NewServer("9999", hub, tempDir, nil)
+	srv := server.NewServer("9999", hub, tempDir, nil, nil)
 
 	handler, err := srv.Handler()
 	if err != nil {
@@ -124,6 +124,40 @@ func TestServerHandler(t *testing.T) {
 	if !strings.HasPrefix(strings.TrimSpace(procBody), "[") {
 		t.Errorf("expected JSON array in /api/processes, got: %s", procBody)
 	}
+
+	// 8. Test Pairing Status API (GET /api/pairing)
+	pairReq := httptest.NewRequest(http.MethodGet, "/api/pairing", nil)
+	pairRec := httptest.NewRecorder()
+	handler.ServeHTTP(pairRec, pairReq)
+
+	if pairRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for /api/pairing, got %d", pairRec.Code)
+	}
+	pairBody := pairRec.Body.String()
+	if !strings.Contains(pairBody, "pin") {
+		t.Errorf("expected pin field in /api/pairing, got: %s", pairBody)
+	}
+
+	// 9. Test Pairing Verification API (POST /api/pairing/verify)
+	verifyBadReq := httptest.NewRequest(http.MethodPost, "/api/pairing/verify?pin=INVALID", nil)
+	verifyBadRec := httptest.NewRecorder()
+	handler.ServeHTTP(verifyBadRec, verifyBadReq)
+
+	if verifyBadRec.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for invalid pin, got %d", verifyBadRec.Code)
+	}
+
+	// 10. Test Pairing QR SVG API (GET /api/pairing/qr)
+	qrReq := httptest.NewRequest(http.MethodGet, "/api/pairing/qr", nil)
+	qrRec := httptest.NewRecorder()
+	handler.ServeHTTP(qrRec, qrReq)
+
+	if qrRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for /api/pairing/qr, got %d", qrRec.Code)
+	}
+	if !strings.Contains(qrRec.Body.String(), "<svg") {
+		t.Errorf("expected SVG output, got: %s", qrRec.Body.String())
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -139,7 +173,7 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Use an open high-numbered port for testing
 	port := "19998"
-	srv := server.NewServer(port, hub, tempDir, nil)
+	srv := server.NewServer(port, hub, tempDir, nil, nil)
 
 	errChan := make(chan error, 1)
 	go func() {

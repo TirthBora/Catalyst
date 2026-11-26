@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"catalyst/internal/monitor"
+	"catalyst/internal/pairing"
 	"catalyst/internal/process"
 	"catalyst/internal/runtime"
 	"catalyst/internal/server"
@@ -118,19 +119,21 @@ func main() {
 	}
 
 	localIP := getLocalIP()
+	pairingMgr := pairing.NewManager()
 
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println("  CATALYST V1 IS ACTIVE")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("  Watching: %s\n", dir)
-	fmt.Printf("  Open on your Secondary Device: http://%s:%s\n", localIP, port)
+	fmt.Printf("  Watching : %s\n", dir)
+	fmt.Printf("  Connect  : http://%s:%s\n", localIP, port)
+	fmt.Printf("  Pair PIN : %s\n", pairingMgr.PIN())
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	// 3. Boot the Process Manager
 	pm := process.NewManager(hub)
 
 	// 4. Boot the HTTP Server
-	srv := server.NewServer(port, hub, dir, pm)
+	srv := server.NewServer(port, hub, dir, pm, pairingMgr)
 
 	// Intercept shutdown signals
 	sigChan := make(chan os.Signal, 1)
