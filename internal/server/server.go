@@ -316,6 +316,39 @@ func (s *Server) Handler() (http.Handler, error) {
 		_ = json.NewEncoder(w).Encode(analysis)
 	})
 
+	// AI-assisted error explanation endpoint
+	mux.HandleFunc("/api/assistant/explain", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			Logs     string `json:"logs"`
+			Endpoint string `json:"endpoint,omitempty"`
+			Model    string `json:"model,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Logs) == "" {
+			http.Error(w, "Logs text required", http.StatusBadRequest)
+			return
+		}
+
+		cfg := assistant.DefaultAIConfig()
+		if body.Endpoint != "" {
+			cfg.Endpoint = body.Endpoint
+		}
+		if body.Model != "" {
+			cfg.Model = body.Model
+		}
+
+		s.mu.Lock()
+		projType := string(s.projectInfo.Type)
+		s.mu.Unlock()
+
+		explanation := assistant.ExplainError(r.Context(), cfg, body.Logs, projType)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(explanation)
+	})
+
 	// Plugin and custom action shortcuts endpoints
 	mux.HandleFunc("/api/plugins", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

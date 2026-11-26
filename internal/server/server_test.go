@@ -312,6 +312,15 @@ func TestServerHandler(t *testing.T) {
 	if plugExecRec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for nonexistent plugin action, got %d", plugExecRec.Code)
 	}
+
+	// 25. Test Assistant Explain API (POST /api/assistant/explain)
+	explainReq := httptest.NewRequest(http.MethodPost, "/api/assistant/explain", strings.NewReader(`{"logs": "Error: missing module"}`))
+	explainRec := httptest.NewRecorder()
+	handler.ServeHTTP(explainRec, explainReq)
+
+	if explainRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for POST /api/assistant/explain, got %d", explainRec.Code)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
