@@ -720,6 +720,9 @@
                 <button class="btn" id="dev-restart-btn" style="display: none; padding: 4px 8px; font-size: 11px;" onclick="restartDevServer()" title="Restart Dev Server">⟳</button>
             </div>
 
+            <!-- Plugin Quick Actions -->
+            <div id="plugin-actions-bar" style="display: none; align-items: center; gap: 4px; padding-left: 8px; border-left: 1px solid var(--border);"></div>
+
             <div class="viewport-modes">
                 <button class="mode-btn active" id="mode-full" onclick="setViewport('full')">Full</button>
                 <button class="mode-btn" id="mode-tablet" onclick="setViewport('tablet')">Tablet</button>
@@ -1187,6 +1190,7 @@ function connect() {
                 loadWorkspaceMetadata();
                 loadConfig();
                 loadDevScripts();
+                loadPluginActions();
                 reloadFrame();
             } else if (data.type === 'DEV_SERVER_STATE') {
                 updateDevServerUI(data.payload.running);
@@ -1758,6 +1762,47 @@ function showAlertToast(severity, message) {
         toast.style.transition = 'opacity 0.3s';
         setTimeout(() => toast.remove(), 300);
     }, 6000);
+}
+
+// ---------------- Plugin Quick Actions ----------------
+async function loadPluginActions() {
+    try {
+        const res = await fetch('/api/plugins');
+        if (!res.ok) return;
+        const data = await res.json();
+        const bar = document.getElementById('plugin-actions-bar');
+
+        if (data.actions && data.actions.length > 0) {
+            let html = '';
+            data.actions.forEach(a => {
+                const icon = a.icon || '⚡';
+                html += `<button class="btn" style="padding: 3px 8px; font-size: 11px;" onclick="executePluginAction('${a.id}', '${a.name}')" title="${a.description || a.name}">${icon} ${a.name}</button>`;
+            });
+            bar.innerHTML = html;
+            bar.style.display = 'flex';
+        } else {
+            bar.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Failed to load plugin actions:', e);
+    }
+}
+loadPluginActions();
+
+async function executePluginAction(actionId, actionName) {
+    try {
+        switchRightPane('proc');
+        const res = await fetch('/api/plugins/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actionId })
+        });
+        if (res.ok) {
+            showAlertToast('info', `Running action: ${actionName}`);
+        }
+    } catch (e) {
+        console.error('Failed to execute action:', e);
+    }
 }
 
 connect();
