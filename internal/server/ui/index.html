@@ -332,6 +332,23 @@
             border-radius: 4px;
             overflow: hidden;
             background: #fff;
+            position: relative;
+        }
+
+        .reload-pulse-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--accent);
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+            z-index: 10;
+        }
+
+        .reload-pulse-bar.active {
+            opacity: 1;
         }
 
         iframe {
@@ -732,6 +749,7 @@
 
         <div class="preview-viewport">
             <div class="preview-frame-container" id="frame-container">
+                <div class="reload-pulse-bar" id="reload-bar"></div>
                 <iframe id="frame" src="about:blank"></iframe>
             </div>
         </div>
@@ -991,14 +1009,37 @@ target.addEventListener('change', () => {
     reloadFrame();
 });
 
-function reloadFrame() {
-    const url = target.value.trim();
-    if (!url) return;
+function flashReloadIndicator() {
+    const bar = document.getElementById('reload-bar');
+    if (bar) {
+        bar.classList.add('active');
+        setTimeout(() => bar.classList.remove('active'), 400);
+    }
+}
 
-    localStorage.setItem('catalystTarget', url);
-    const separator = url.includes('?') ? '&' : '?';
-    const cacheBust = `${separator}catalyst=${Date.now()}`;
-    frame.src = url + cacheBust;
+function reloadFrame() {
+    const rawUrl = target.value.trim();
+    if (!rawUrl) return;
+
+    localStorage.setItem('catalystTarget', rawUrl);
+
+    // Strip previous cacheBust parameters
+    let cleanUrl = rawUrl.replace(/([?&])_cat=[^&]+(&|$)/g, '$1').replace(/[?&]$/, '');
+    const separator = cleanUrl.includes('?') ? '&' : '?';
+    const cacheBust = `${separator}_cat=${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const targetWithBust = cleanUrl + cacheBust;
+
+    flashReloadIndicator();
+
+    try {
+        if (frame.contentWindow && frame.contentWindow.location) {
+            frame.contentWindow.location.replace(targetWithBust);
+            return;
+        }
+    } catch (e) {
+        // Cross-origin fallback
+    }
+    frame.src = targetWithBust;
 }
 
 // ---------------- Viewport Frame Mode ----------------

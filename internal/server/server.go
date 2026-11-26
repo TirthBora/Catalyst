@@ -565,14 +565,20 @@ func (s *Server) Handler() (http.Handler, error) {
 		_, _ = w.Write([]byte(svg))
 	})
 
-	// Reverse proxy endpoint for local development servers
+	// Reverse proxy endpoint for local development servers with strict cache invalidation
 	reverseProxy := proxy.NewReverseProxy()
-	mux.Handle("/proxy/", reverseProxy)
+	noCacheProxy := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		reverseProxy.ServeHTTP(w, r)
+	})
+	mux.Handle("/proxy/", noCacheProxy)
 
 	// Catalyst UI
 	mux.Handle("/", http.FileServer(http.FS(subFS)))
 
-	// Project preview
+	// Project preview with strict zero-caching so file changes appear instantly
 	if _, err := os.Stat(s.projectRoot); err != nil {
 		return nil, err
 	}
@@ -581,9 +587,13 @@ func (s *Server) Handler() (http.Handler, error) {
 		http.Dir(filepath.Clean(s.projectRoot)),
 	)
 
-	mux.Handle("/preview/",
-		http.StripPrefix("/preview", projectFS),
-	)
+	noCachePreview := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		http.StripPrefix("/preview", projectFS).ServeHTTP(w, r)
+	})
+	mux.Handle("/preview/", noCachePreview)
 
 	return mux, nil
 }

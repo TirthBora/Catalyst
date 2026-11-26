@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -100,7 +101,10 @@ func main() {
 	}
 
 	port := opts.Port
-	dir := opts.Dir
+	dir, err := filepath.Abs(opts.Dir)
+	if err != nil {
+		dir = filepath.Clean(opts.Dir)
+	}
 
 	// 1. Boot the WebSocket Hub
 	hub := websocket.NewHub()

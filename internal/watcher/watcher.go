@@ -33,6 +33,12 @@ type Watcher struct {
 }
 
 func NewWatcher(rootPath string, hub *websocket.Hub) (*Watcher, error) {
+	abs, err := filepath.Abs(rootPath)
+	if err == nil {
+		rootPath = abs
+	}
+	rootPath = filepath.Clean(rootPath)
+
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -181,6 +187,12 @@ func (w *Watcher) Close() {
 
 // SwitchRoot detaches the current watch tree and attaches the new root directory.
 func (w *Watcher) SwitchRoot(newRoot string) error {
+	abs, err := filepath.Abs(newRoot)
+	if err == nil {
+		newRoot = abs
+	}
+	newRoot = filepath.Clean(newRoot)
+
 	w.mu.Lock()
 	for k, t := range w.timers {
 		t.Stop()
@@ -192,7 +204,7 @@ func (w *Watcher) SwitchRoot(newRoot string) error {
 		_ = w.fsWatcher.Remove(p)
 	}
 
-	w.rootPath = filepath.Clean(newRoot)
+	w.rootPath = newRoot
 	w.mu.Unlock()
 
 	return w.watchDirRecursively(w.rootPath)
