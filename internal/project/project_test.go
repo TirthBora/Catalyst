@@ -21,6 +21,9 @@ func TestDetectGo(t *testing.T) {
 	if info.DefaultPort != "8080" {
 		t.Errorf("expected port 8080, got %s", info.DefaultPort)
 	}
+	if len(info.Scripts) == 0 || info.Scripts[0].Command != "go" {
+		t.Errorf("expected go scripts to be extracted, got %+v", info.Scripts)
+	}
 }
 
 func TestDetectVite(t *testing.T) {
@@ -51,6 +54,10 @@ func TestDetectNext(t *testing.T) {
 	dir := t.TempDir()
 	pkgContent := `{
 		"name": "my-next-app",
+		"scripts": {
+			"dev": "next dev",
+			"build": "next build"
+		},
 		"dependencies": {
 			"next": "^14.0.0",
 			"react": "^18.0.0"
@@ -66,6 +73,9 @@ func TestDetectNext(t *testing.T) {
 	}
 	if info.DefaultPort != "3000" {
 		t.Errorf("expected port 3000, got %s", info.DefaultPort)
+	}
+	if len(info.Scripts) != 2 {
+		t.Errorf("expected 2 extracted scripts from package.json, got %d", len(info.Scripts))
 	}
 }
 

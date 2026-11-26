@@ -22,6 +22,13 @@ const (
 	TypeUnknown ProjectType = "Generic"
 )
 
+// Script defines a runnable development task extracted from project configuration.
+type Script struct {
+	Name    string   `json:"name"`    // e.g. "dev", "start", "run"
+	Command string   `json:"command"` // e.g. "npm", "go", "cargo"
+	Args    []string `json:"args"`    // e.g. ["run", "dev"]
+}
+
 // Info contains metadata about the detected project.
 type Info struct {
 	Name        string      `json:"name"`
@@ -30,6 +37,7 @@ type Info struct {
 	DefaultPort string      `json:"defaultPort,omitempty"`
 	RootDir     string      `json:"rootDir"`
 	EntryFile   string      `json:"entryFile,omitempty"`
+	Scripts     []Script    `json:"scripts"`
 }
 
 type packageJSON struct {
@@ -46,6 +54,7 @@ func Detect(rootDir string) Info {
 		Name:    baseName,
 		Type:    TypeUnknown,
 		RootDir: rootDir,
+		Scripts: make([]Script, 0),
 	}
 
 	// 1. Check for Go (go.mod)
@@ -53,6 +62,10 @@ func Detect(rootDir string) Info {
 		info.Type = TypeGo
 		info.Framework = "Standard Go"
 		info.DefaultPort = "8080"
+		info.Scripts = []Script{
+			{Name: "run", Command: "go", Args: []string{"run", "."}},
+			{Name: "test", Command: "go", Args: []string{"test", "./..."}},
+		}
 		return info
 	}
 
@@ -75,6 +88,15 @@ func Detect(rootDir string) Info {
 				}
 				for k := range pkg.DevDependencies {
 					allDeps[k] = true
+				}
+
+				// Extract package.json runnable scripts
+				for scriptName := range pkg.Scripts {
+					info.Scripts = append(info.Scripts, Script{
+						Name:    scriptName,
+						Command: "npm",
+						Args:    []string{"run", scriptName},
+					})
 				}
 
 				switch {
@@ -113,17 +135,26 @@ func Detect(rootDir string) Info {
 		info.Framework = "Python"
 		info.DefaultPort = "8000"
 
+		if exists(filepath.Join(rootDir, "app.py")) {
+			info.Scripts = append(info.Scripts, Script{Name: "run", Command: "python", Args: []string{"app.py"}})
+		} else if exists(filepath.Join(rootDir, "main.py")) {
+			info.Scripts = append(info.Scripts, Script{Name: "run", Command: "python", Args: []string{"main.py"}})
+		}
+
 		if data, err := os.ReadFile(filepath.Join(rootDir, "requirements.txt")); err == nil {
 			content := strings.ToLower(string(data))
 			if strings.Contains(content, "flask") {
 				info.Framework = "Flask"
 				info.DefaultPort = "5000"
+				info.Scripts = append(info.Scripts, Script{Name: "flask", Command: "flask", Args: []string{"run"}})
 			} else if strings.Contains(content, "django") {
 				info.Framework = "Django"
 				info.DefaultPort = "8000"
+				info.Scripts = append(info.Scripts, Script{Name: "django", Command: "python", Args: []string{"manage.py", "runserver"}})
 			} else if strings.Contains(content, "fastapi") {
 				info.Framework = "FastAPI"
 				info.DefaultPort = "8000"
+				info.Scripts = append(info.Scripts, Script{Name: "fastapi", Command: "uvicorn", Args: []string{"main:app", "--reload"}})
 			}
 		}
 		return info
@@ -134,6 +165,10 @@ func Detect(rootDir string) Info {
 		info.Type = TypeRust
 		info.Framework = "Cargo"
 		info.DefaultPort = "8080"
+		info.Scripts = []Script{
+			{Name: "run", Command: "cargo", Args: []string{"run"}},
+			{Name: "test", Command: "cargo", Args: []string{"test"}},
+		}
 		return info
 	}
 
