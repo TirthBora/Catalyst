@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"catalyst/internal/config"
 	"catalyst/internal/monitor"
 	"catalyst/internal/pairing"
 	"catalyst/internal/process"
@@ -32,16 +33,20 @@ type Server struct {
 	projectInfo project.Info
 	processMgr  *process.Manager
 	pairingMgr  *pairing.Manager
+	configMgr   *config.Manager
 	httpServer  *http.Server
 	mu          sync.Mutex
 }
 
-func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager) *Server {
+func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager) *Server {
 	if pm == nil {
 		pm = process.NewManager(hub)
 	}
 	if pairingMgr == nil {
 		pairingMgr = pairing.NewManager()
+	}
+	if cfgMgr == nil {
+		cfgMgr = config.NewManager(projectRoot)
 	}
 	return &Server{
 		hub:         hub,
@@ -50,6 +55,7 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 		projectInfo: project.Detect(projectRoot),
 		processMgr:  pm,
 		pairingMgr:  pairingMgr,
+		configMgr:   cfgMgr,
 	}
 }
 
@@ -98,6 +104,28 @@ func (s *Server) Handler() (http.Handler, error) {
 	mux.HandleFunc("/api/processes", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(s.processMgr.List())
+	})
+
+	// Workspace configuration endpoint (GET & POST)
+	mux.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			var newCfg config.Config
+			if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+				http.Error(w, "Invalid configuration JSON", http.StatusBadRequest)
+				return
+			}
+			if err := s.configMgr.Update(newCfg); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if s.hub != nil {
+				s.hub.Broadcast("CONFIG_UPDATED", s.configMgr.Get())
+			}
+			_ = json.NewEncoder(w).Encode(s.configMgr.Get())
+			return
+		}
+		_ = json.NewEncoder(w).Encode(s.configMgr.Get())
 	})
 
 	// Pairing status and connected devices endpoint

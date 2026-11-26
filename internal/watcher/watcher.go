@@ -24,11 +24,12 @@ func ShouldIgnore(name string) bool {
 }
 
 type Watcher struct {
-	fsWatcher *fsnotify.Watcher
-	hub       *websocket.Hub
-	rootPath  string
-	mu        sync.Mutex
-	timers    map[string]*time.Timer
+	fsWatcher    *fsnotify.Watcher
+	hub          *websocket.Hub
+	rootPath     string
+	customIgnore []string
+	mu           sync.Mutex
+	timers       map[string]*time.Timer
 }
 
 func NewWatcher(rootPath string, hub *websocket.Hub) (*Watcher, error) {
@@ -45,6 +46,27 @@ func NewWatcher(rootPath string, hub *websocket.Hub) (*Watcher, error) {
 	}, nil
 }
 
+// SetCustomIgnore configures additional directory names to ignore.
+func (w *Watcher) SetCustomIgnore(patterns []string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.customIgnore = append([]string(nil), patterns...)
+}
+
+func (w *Watcher) isIgnored(name string) bool {
+	if ShouldIgnore(name) {
+		return true
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for _, p := range w.customIgnore {
+		if strings.EqualFold(name, p) {
+			return true
+		}
+	}
+	return false
+}
+
 // watchDirRecursively adds dir and all its non-ignored subdirectories to the watcher.
 func (w *Watcher) watchDirRecursively(dir string) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -52,7 +74,7 @@ func (w *Watcher) watchDirRecursively(dir string) error {
 			return nil
 		}
 		if info.IsDir() {
-			if ShouldIgnore(info.Name()) {
+			if w.isIgnored(info.Name()) {
 				return filepath.SkipDir
 			}
 			return w.fsWatcher.Add(path)
@@ -81,7 +103,7 @@ func (w *Watcher) eventLoop() {
 			// If a new directory was created, dynamically add it to the watcher.
 			if event.Op&fsnotify.Create != 0 {
 				if fi, err := os.Stat(event.Name); err == nil && fi.IsDir() {
-					if !ShouldIgnore(fi.Name()) {
+					if !w.isIgnored(fi.Name()) {
 						_ = w.watchDirRecursively(event.Name)
 					}
 					w.debounceEmit(event.Name, "create")

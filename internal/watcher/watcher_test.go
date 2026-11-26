@@ -94,4 +94,7 @@ func TestWatcherFileEvents(t *testing.T) {
 	}
 
 	time.Sleep(200 * time.Millisecond)
+
+	// Test SetCustomIgnore
+	w.SetCustomIgnore([]string{"custom-folder"})
 }

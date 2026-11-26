@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"catalyst/internal/config"
 	"catalyst/internal/monitor"
 	"catalyst/internal/pairing"
 	"catalyst/internal/process"
@@ -114,6 +115,12 @@ func main() {
 	}
 	defer w.Close()
 
+	// Load workspace configuration
+	cfgMgr := config.NewManager(dir)
+	if custom := cfgMgr.Get().CustomIgnore; len(custom) > 0 {
+		w.SetCustomIgnore(custom)
+	}
+
 	if err := w.Start(); err != nil {
 		log.Fatalf("Failed to start watcher: %v", err)
 	}
@@ -133,7 +140,7 @@ func main() {
 	pm := process.NewManager(hub)
 
 	// 4. Boot the HTTP Server
-	srv := server.NewServer(port, hub, dir, pm, pairingMgr)
+	srv := server.NewServer(port, hub, dir, pm, pairingMgr, cfgMgr)
 
 	// Intercept shutdown signals
 	sigChan := make(chan os.Signal, 1)

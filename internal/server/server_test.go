@@ -29,7 +29,7 @@ func TestServerHandler(t *testing.T) {
 	}
 
 	hub := websocket.NewHub()
-	srv := server.NewServer("9999", hub, tempDir, nil, nil)
+	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil)
 
 	handler, err := srv.Handler()
 	if err != nil {
@@ -158,6 +158,31 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(qrRec.Body.String(), "<svg") {
 		t.Errorf("expected SVG output, got: %s", qrRec.Body.String())
 	}
+
+	// 11. Test Config Get API (GET /api/config)
+	cfgReq := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	cfgRec := httptest.NewRecorder()
+	handler.ServeHTTP(cfgRec, cfgReq)
+
+	if cfgRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for GET /api/config, got %d", cfgRec.Code)
+	}
+	if !strings.Contains(cfgRec.Body.String(), "targetUrl") {
+		t.Errorf("expected JSON with targetUrl in /api/config, got: %s", cfgRec.Body.String())
+	}
+
+	// 12. Test Config Update API (POST /api/config)
+	postBody := strings.NewReader(`{"targetUrl": "/proxy/5173/", "defaultDevice": "tablet"}`)
+	cfgPostReq := httptest.NewRequest(http.MethodPost, "/api/config", postBody)
+	cfgPostRec := httptest.NewRecorder()
+	handler.ServeHTTP(cfgPostRec, cfgPostReq)
+
+	if cfgPostRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for POST /api/config, got %d", cfgPostRec.Code)
+	}
+	if !strings.Contains(cfgPostRec.Body.String(), "/proxy/5173/") {
+		t.Errorf("expected updated target in response, got: %s", cfgPostRec.Body.String())
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -173,7 +198,7 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Use an open high-numbered port for testing
 	port := "19998"
-	srv := server.NewServer(port, hub, tempDir, nil, nil)
+	srv := server.NewServer(port, hub, tempDir, nil, nil, nil)
 
 	errChan := make(chan error, 1)
 	go func() {
