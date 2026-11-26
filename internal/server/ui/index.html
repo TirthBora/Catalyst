@@ -6,25 +6,25 @@
     <title>Catalyst Workspace</title>
     <style>
         :root {
-            --bg-primary: #111318;
-            --bg-secondary: #181B22;
-            --bg-panel: #1E222B;
-            --bg-elevated: #252A35;
-            --text-primary: #E8EAF0;
-            --text-secondary: #9299A8;
-            --text-muted: #656C7D;
-            --border: #303644;
-            --border-subtle: #242935;
-            --accent: #3B82F6;
-            --accent-hover: #2563EB;
-            --accent-subtle: rgba(59, 130, 246, 0.12);
+            --bg-primary: #07090E;
+            --bg-secondary: #0D0F16;
+            --bg-panel: #131722;
+            --bg-elevated: #1B2130;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border: #22293A;
+            --border-subtle: #161A26;
+            --accent: #6366F1;
+            --accent-hover: #4F46E5;
+            --accent-subtle: rgba(99, 102, 241, 0.15);
             --success: #10B981;
-            --success-subtle: rgba(16, 185, 129, 0.12);
+            --success-subtle: rgba(16, 185, 129, 0.15);
             --warning: #F59E0B;
-            --warning-subtle: rgba(245, 158, 11, 0.12);
+            --warning-subtle: rgba(245, 158, 11, 0.15);
             --error: #EF4444;
-            --error-subtle: rgba(239, 68, 68, 0.12);
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            --error-subtle: rgba(239, 68, 68, 0.15);
+            --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
             --font-mono: "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
         }
 
@@ -328,11 +328,14 @@
             width: 100%;
             height: 100%;
             transition: width 0.2s ease;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            border-radius: 4px;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             overflow: hidden;
             background: #fff;
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .reload-pulse-bar {
@@ -349,6 +352,46 @@
 
         .reload-pulse-bar.active {
             opacity: 1;
+        }
+
+        .browser-chrome {
+            height: 32px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 12px;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .traffic-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .t-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .chrome-url {
+            flex: 1;
+            max-width: 360px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
         iframe {
@@ -800,6 +843,17 @@
         <div class="preview-viewport">
             <div class="preview-frame-container" id="frame-container">
                 <div class="reload-pulse-bar" id="reload-bar"></div>
+                <div class="browser-chrome">
+                    <div class="traffic-dots">
+                        <span class="t-dot" style="background: #EF4444;"></span>
+                        <span class="t-dot" style="background: #F59E0B;"></span>
+                        <span class="t-dot" style="background: #10B981;"></span>
+                    </div>
+                    <div class="chrome-url" id="chrome-url-display">
+                        <span style="font-size: 10px; color: var(--success);">🔒</span>
+                        <span id="chrome-url-text">/preview/</span>
+                    </div>
+                </div>
                 <iframe id="frame" src="about:blank"></iframe>
             </div>
         </div>
@@ -1072,6 +1126,9 @@ function reloadFrame() {
     if (!rawUrl) return;
 
     localStorage.setItem('catalystTarget', rawUrl);
+
+    const chromeUrl = document.getElementById('chrome-url-text');
+    if (chromeUrl) chromeUrl.innerText = rawUrl;
 
     // Strip previous cacheBust parameters
     let cleanUrl = rawUrl.replace(/([?&])_cat=[^&]+(&|$)/g, '$1').replace(/[?&]$/, '');
