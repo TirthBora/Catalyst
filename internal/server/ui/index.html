@@ -787,6 +787,10 @@
                 </div>
                 <div id="asst-error-summary" style="font-size: 12px; margin-top: 4px; color: var(--text-primary);">--</div>
                 <div id="asst-error-suggestions" style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;"></div>
+                <button class="btn btn-accent" id="asst-ai-btn" style="margin-top: 10px; padding: 4px 10px; font-size: 11px;" onclick="requestAIExplanation()">
+                    ✨ Explain with AI
+                </button>
+                <div id="asst-ai-response" style="display: none; margin-top: 8px; padding: 10px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; color: var(--text-primary);"></div>
             </div>
 
             <div class="diag-section-title">Workspace Insights</div>
@@ -1354,6 +1358,44 @@ async function analyzeCurrentError() {
         }
     } catch (e) {
         console.error('Failed to analyze error:', e);
+    }
+}
+
+async function requestAIExplanation() {
+    const btn = document.getElementById('asst-ai-btn');
+    const respBox = document.getElementById('asst-ai-response');
+    const summary = document.getElementById('asst-error-summary').innerText;
+
+    const term = document.getElementById('terminal-logs');
+    let logsText = summary;
+    if (term) {
+        logsText = Array.from(term.querySelectorAll('.term-line')).slice(-30).map(el => el.innerText).join('\n');
+    }
+
+    btn.innerText = '✨ Analyzing...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/assistant/explain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logs: logsText })
+        });
+        const data = await res.json();
+
+        if (data.available) {
+            respBox.innerHTML = `<strong>AI Guidance:</strong>\n${data.suggestedFix}`;
+            respBox.style.display = 'block';
+        } else {
+            respBox.innerHTML = `<span style="color: var(--text-muted);">AI explanation unavailable: ${data.error || 'Check local AI gateway'}</span>`;
+            respBox.style.display = 'block';
+        }
+    } catch (e) {
+        respBox.innerHTML = `<span style="color: var(--error);">Error reaching AI service: ${e.message}</span>`;
+        respBox.style.display = 'block';
+    } finally {
+        btn.innerText = '✨ Explain with AI';
+        btn.disabled = false;
     }
 }
 
