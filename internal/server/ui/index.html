@@ -439,6 +439,96 @@
             word-break: break-all;
         }
 
+        /* ---------------- Diagnostics Modal ---------------- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 540px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .diag-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .diag-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .diag-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .diag-card-title {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .diag-card-val {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
         /* ---------------- Responsive ---------------- */
         @media (max-width: 840px) {
             .mobile-tabs {
@@ -478,6 +568,12 @@
     </div>
 
     <div class="header-right">
+        <button class="btn" id="doctor-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openDoctorModal()">
+            Diagnostics
+        </button>
+        <div class="status-pill" id="system-pill" style="display: none; background: var(--bg-panel); color: var(--text-secondary); border-color: var(--border);">
+            <span id="ram-text">RAM: --%</span>
+        </div>
         <div class="status-pill" id="status-pill">
             <div class="dot"></div>
             <span id="status-text">Connecting</span>
@@ -542,6 +638,19 @@
                 </div>
                 <div class="log-filename">Catalyst workspace initialized.</div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diagnostics Modal -->
+<div class="modal-backdrop" id="doctor-modal" style="display: none;" onclick="closeDoctorModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div style="font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">ENVIRONMENT DIAGNOSTICS</div>
+            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="closeDoctorModal()">✕</button>
+        </div>
+        <div class="modal-body" id="doctor-body">
+            <div style="color: var(--text-muted); font-size: 12px;">Running diagnostics...</div>
         </div>
     </div>
 </div>
@@ -719,6 +828,14 @@ function connect() {
                 const time = data.payload.timestamp;
                 addLogEntry(file, action, time);
                 reloadFrame();
+            } else if (data.type === 'SYSTEM_STATS') {
+                const mem = data.payload.memory;
+                const pill = document.getElementById('system-pill');
+                const ramText = document.getElementById('ram-text');
+                if (pill && ramText && mem && mem.usedPct > 0) {
+                    pill.style.display = 'flex';
+                    ramText.innerText = `RAM: ${mem.usedPct}% (${mem.usedMb}MB)`;
+                }
             }
         } catch (err) {
             console.error('Invalid WebSocket message:', err);
@@ -735,6 +852,73 @@ function connect() {
         statusPill.className = 'status-pill disconnected';
         statusText.innerText = 'Error';
     };
+}
+
+// ---------------- Diagnostics Modal ----------------
+async function openDoctorModal() {
+    const modal = document.getElementById('doctor-modal');
+    const body = document.getElementById('doctor-body');
+    modal.style.display = 'flex';
+    body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Running environment diagnostics...</div>';
+
+    try {
+        const [docRes, sysRes] = await Promise.all([
+            fetch('/api/doctor'),
+            fetch('/api/system')
+        ]);
+        const doc = await docRes.json();
+        const sys = await sysRes.json();
+
+        let html = '';
+
+        // Host overview
+        html += '<div class="diag-section-title">Host Metrics</div>';
+        html += '<div class="diag-grid">';
+        html += `<div class="diag-card"><span class="diag-card-title">OS / Arch</span><span class="diag-card-val">${sys.os || '--'} / ${sys.arch || '--'}</span></div>`;
+        html += `<div class="diag-card"><span class="diag-card-title">CPU Cores</span><span class="diag-card-val">${sys.numCpu || '--'}</span></div>`;
+        html += `<div class="diag-card"><span class="diag-card-title">RAM Usage</span><span class="diag-card-val">${sys.memory?.usedPct || 0}% (${sys.memory?.usedMb || 0} / ${sys.memory?.totalMb || 0} MB)</span></div>`;
+        html += `<div class="diag-card"><span class="diag-card-title">Process Uptime</span><span class="diag-card-val">${sys.uptimeSec || 0}s</span></div>`;
+        html += '</div>';
+
+        // Toolchains
+        html += '<div class="diag-section-title" style="margin-top: 10px;">Toolchains</div>';
+        html += '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        (doc.toolchains || []).forEach(tc => {
+            const mark = tc.installed ? '✓' : '✗';
+            const color = tc.installed ? 'var(--success)' : 'var(--text-muted)';
+            const ver = tc.installed ? tc.version : 'Not installed';
+            html += `<div class="check-item"><span style="font-weight: 600;">${tc.name}</span><span style="color: ${color}; font-family: var(--font-mono); font-size: 11px;">${mark} ${ver}</span></div>`;
+        });
+        html += '</div>';
+
+        // Workspace
+        html += '<div class="diag-section-title" style="margin-top: 10px;">Workspace Health</div>';
+        html += '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        (doc.checks || []).filter(c => c.category === 'workspace').forEach(c => {
+            let color = 'var(--success)';
+            let mark = '✓';
+            if (c.status === 'warning') {
+                color = 'var(--warning)';
+                mark = '!';
+            } else if (c.status === 'error') {
+                color = 'var(--error)';
+                mark = '✗';
+            }
+            html += `<div class="check-item"><span style="font-weight: 600;">${c.name}</span><span style="color: ${color}; font-size: 11px;">${mark} ${c.message}</span></div>`;
+        });
+        html += '</div>';
+
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<div style="color: var(--error); font-size: 12px;">Failed to load diagnostics: ${err.message}</div>`;
+    }
+}
+
+function closeDoctorModal(event) {
+    if (event && event.target !== document.getElementById('doctor-modal') && event.target !== event.currentTarget) {
+        return;
+    }
+    document.getElementById('doctor-modal').style.display = 'none';
 }
 
 connect();

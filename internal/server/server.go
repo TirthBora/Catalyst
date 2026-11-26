@@ -10,8 +10,10 @@ import (
 	"path/filepath"
 	"sync"
 
+	"catalyst/internal/monitor"
 	"catalyst/internal/project"
 	"catalyst/internal/proxy"
+	"catalyst/internal/runtime"
 	"catalyst/internal/websocket"
 )
 
@@ -61,6 +63,20 @@ func (s *Server) Handler() (http.Handler, error) {
 			"clientsCount": s.hub.ClientCount(),
 		}
 		_ = json.NewEncoder(w).Encode(data)
+	})
+
+	// System metrics endpoint
+	mux.HandleFunc("/api/system", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		stats := monitor.GetStats()
+		_ = json.NewEncoder(w).Encode(stats)
+	})
+
+	// Environment doctor diagnostics endpoint
+	mux.HandleFunc("/api/doctor", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		report := runtime.Diagnose(s.projectRoot)
+		_ = json.NewEncoder(w).Encode(report)
 	})
 
 	// Reverse proxy endpoint for local development servers

@@ -85,6 +85,32 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(apiBody, "Static Web") {
 		t.Errorf("expected detected type 'Static Web' in /api/workspace, got: %s", apiBody)
 	}
+
+	// 5. Test System Metrics API (GET /api/system)
+	sysReq := httptest.NewRequest(http.MethodGet, "/api/system", nil)
+	sysRec := httptest.NewRecorder()
+	handler.ServeHTTP(sysRec, sysReq)
+
+	if sysRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for /api/system, got %d", sysRec.Code)
+	}
+	sysBody := sysRec.Body.String()
+	if !strings.Contains(sysBody, "numCpu") {
+		t.Errorf("expected JSON with numCpu in /api/system, got: %s", sysBody)
+	}
+
+	// 6. Test Doctor Diagnostics API (GET /api/doctor)
+	docReq := httptest.NewRequest(http.MethodGet, "/api/doctor", nil)
+	docRec := httptest.NewRecorder()
+	handler.ServeHTTP(docRec, docReq)
+
+	if docRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for /api/doctor, got %d", docRec.Code)
+	}
+	docBody := docRec.Body.String()
+	if !strings.Contains(docBody, "toolchains") {
+		t.Errorf("expected JSON with toolchains in /api/doctor, got: %s", docBody)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
