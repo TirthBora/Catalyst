@@ -34,6 +34,7 @@ type Server struct {
 	projectRoot  string
 	projectInfo  project.Info
 	processMgr   *process.Manager
+	devRunner    *process.DevRunner
 	pairingMgr   *pairing.Manager
 	configMgr    *config.Manager
 	workspaceReg *workspace.Registry
@@ -61,6 +62,7 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 		projectRoot:  projectRoot,
 		projectInfo:  project.Detect(projectRoot),
 		processMgr:   pm,
+		devRunner:    process.NewDevRunner(pm),
 		pairingMgr:   pairingMgr,
 		configMgr:    cfgMgr,
 		workspaceReg: wsReg,
@@ -113,6 +115,89 @@ func (s *Server) Handler() (http.Handler, error) {
 	mux.HandleFunc("/api/processes", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(s.processMgr.List())
+	})
+
+	// Dev server execution endpoints
+	mux.HandleFunc("/api/dev/scripts", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		status, running := s.devRunner.GetStatus()
+		data := map[string]interface{}{
+			"scripts": s.projectInfo.Scripts,
+			"running": running,
+			"process": status,
+		}
+		_ = json.NewEncoder(w).Encode(data)
+	})
+
+	mux.HandleFunc("/api/dev/start", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			Script string `json:"script"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.Script) == "" {
+			http.Error(w, "Script name required", http.StatusBadRequest)
+			return
+		}
+
+		s.mu.Lock()
+		allowed := s.projectInfo.Scripts
+		workDir := s.projectRoot
+		s.mu.Unlock()
+
+		p, err := s.devRunner.StartScript(body.Script, allowed, workDir)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if s.hub != nil {
+			s.hub.Broadcast("DEV_SERVER_STATE", map[string]interface{}{
+				"running": true,
+				"pid":     p.PID,
+				"script":  body.Script,
+			})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(p)
+	})
+
+	mux.HandleFunc("/api/dev/stop", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		_ = s.devRunner.Stop()
+		if s.hub != nil {
+			s.hub.Broadcast("DEV_SERVER_STATE", map[string]interface{}{
+				"running": false,
+			})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "stopped"})
+	})
+
+	mux.HandleFunc("/api/dev/restart", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		p, err := s.devRunner.Restart()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if s.hub != nil {
+			s.hub.Broadcast("DEV_SERVER_STATE", map[string]interface{}{
+				"running": true,
+				"pid":     p.PID,
+			})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(p)
 	})
 
 	// Multi-workspace management endpoints

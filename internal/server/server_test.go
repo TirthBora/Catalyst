@@ -224,6 +224,24 @@ func TestServerHandler(t *testing.T) {
 	if !strings.Contains(switchRec.Body.String(), newWS.ID) {
 		t.Errorf("expected switched workspace ID in response, got: %s", switchRec.Body.String())
 	}
+
+	// 16. Test Dev Scripts Listing API (GET /api/dev/scripts)
+	devScriptsReq := httptest.NewRequest(http.MethodGet, "/api/dev/scripts", nil)
+	devScriptsRec := httptest.NewRecorder()
+	handler.ServeHTTP(devScriptsRec, devScriptsReq)
+
+	if devScriptsRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for GET /api/dev/scripts, got %d", devScriptsRec.Code)
+	}
+
+	// 17. Test Dev Start with unvetted script (POST /api/dev/start) -> should reject
+	devStartReq := httptest.NewRequest(http.MethodPost, "/api/dev/start", strings.NewReader(`{"script": "arbitrary-injection"}`))
+	devStartRec := httptest.NewRecorder()
+	handler.ServeHTTP(devStartRec, devStartReq)
+
+	if devStartRec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for unvetted script name, got %d", devStartRec.Code)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
