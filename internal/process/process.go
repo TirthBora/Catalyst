@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +45,7 @@ type Process struct {
 	Logs      []LogLine `json:"logs"`
 
 	cmd       *exec.Cmd
+	stdin     io.WriteCloser
 	cancel    context.CancelFunc
 	mu        sync.RWMutex
 }
@@ -80,19 +82,28 @@ func (m *Manager) Start(id, command string, args []string, workDir string) (*Pro
 	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Dir = workDir
 
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
+		_ = stdinPipe.Close()
 		cancel()
 		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
 	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
+		_ = stdinPipe.Close()
 		cancel()
 		return nil, fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
 	if err := cmd.Start(); err != nil {
+		_ = stdinPipe.Close()
 		cancel()
 		return nil, fmt.Errorf("failed to start process: %w", err)
 	}
@@ -107,6 +118,7 @@ func (m *Manager) Start(id, command string, args []string, workDir string) (*Pro
 		StartedAt: time.Now().UTC(),
 		Logs:      make([]LogLine, 0, 100),
 		cmd:       cmd,
+		stdin:     stdinPipe,
 		cancel:    cancel,
 	}
 	m.processes[id] = p
@@ -185,6 +197,34 @@ func (m *Manager) waitProcess(p *Process) {
 	}
 }
 
+// WriteInput writes input string followed by newline to the process's standard input.
+func (p *Process) WriteInput(text string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.State != StateRunning || p.stdin == nil {
+		return fmt.Errorf("process is not running")
+	}
+
+	if !strings.HasSuffix(text, "\n") {
+		text += "\n"
+	}
+	_, err := p.stdin.Write([]byte(text))
+	return err
+}
+
+// WriteInput sends interactive text input to a running process standard input pipe.
+func (m *Manager) WriteInput(id, text string) error {
+	m.mu.RLock()
+	p, ok := m.processes[id]
+	m.mu.RUnlock()
+
+	if !ok {
+		return fmt.Errorf("process %q not found", id)
+	}
+	return p.WriteInput(text)
+}
+
 // Stop gracefully terminates a running process.
 func (m *Manager) Stop(id string) error {
 	m.mu.RLock()
@@ -204,6 +244,10 @@ func (m *Manager) Stop(id string) error {
 
 	// Trigger context cancellation
 	p.cancel()
+
+	if p.stdin != nil {
+		_ = p.stdin.Close()
+	}
 
 	// Platform-aware process termination
 	if runtime.GOOS == "windows" && p.cmd != nil && p.cmd.Process != nil {

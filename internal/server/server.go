@@ -249,6 +249,36 @@ func (s *Server) Handler() (http.Handler, error) {
 		_ = json.NewEncoder(w).Encode(p)
 	})
 
+	mux.HandleFunc("/api/dev/input", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			Text string `json:"text"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, "Invalid input payload", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.devRunner.WriteInput(body.Text); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if s.hub != nil {
+			s.hub.Broadcast("PROCESS_OUTPUT", map[string]interface{}{
+				"stream":    "stdin",
+				"text":      body.Text,
+				"timestamp": time.Now().Format("15:04:05"),
+			})
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "sent"})
+	})
+
 	// Multi-workspace management endpoints
 	mux.HandleFunc("/api/workspaces", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

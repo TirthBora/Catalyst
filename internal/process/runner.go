@@ -59,6 +59,13 @@ func (r *DevRunner) Restart() (*Process, error) {
 	return r.pm.Restart(r.activeID)
 }
 
+// WriteInput sends interactive text to the active dev server's stdin.
+func (r *DevRunner) WriteInput(text string) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.pm.WriteInput(r.activeID, text)
+}
+
 // GetStatus returns the process status of the active dev server.
 func (r *DevRunner) GetStatus() (*Process, bool) {
 	r.mu.RLock()

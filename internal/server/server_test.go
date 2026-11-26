@@ -263,6 +263,15 @@ func TestServerHandler(t *testing.T) {
 	if relayConnectRec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for empty relayUrl, got %d", relayConnectRec.Code)
 	}
+
+	// 20. Test Dev Input API when no server is running (POST /api/dev/input) -> should return error
+	inputReq := httptest.NewRequest(http.MethodPost, "/api/dev/input", strings.NewReader(`{"text": "y"}`))
+	inputRec := httptest.NewRecorder()
+	handler.ServeHTTP(inputRec, inputReq)
+
+	if inputRec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 when writing input to non-running dev server, got %d", inputRec.Code)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {

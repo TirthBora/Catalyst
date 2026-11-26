@@ -46,6 +46,9 @@ func TestDevRunnerVetting(t *testing.T) {
 		t.Error("expected dev-server status to be retrievable")
 	}
 
+	// Test WriteInput
+	_ = runner.WriteInput("test-input")
+
 	time.Sleep(300 * time.Millisecond)
 
 	// Stop
