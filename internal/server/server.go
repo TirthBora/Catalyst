@@ -19,6 +19,7 @@ import (
 	"catalyst/internal/process"
 	"catalyst/internal/project"
 	"catalyst/internal/proxy"
+	"catalyst/internal/relay"
 	"catalyst/internal/runtime"
 	"catalyst/internal/watcher"
 	"catalyst/internal/websocket"
@@ -39,11 +40,12 @@ type Server struct {
 	configMgr    *config.Manager
 	workspaceReg *workspace.Registry
 	watcher      *watcher.Watcher
+	relayClient  *relay.Client
 	httpServer   *http.Server
 	mu           sync.Mutex
 }
 
-func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager, wsReg *workspace.Registry, w *watcher.Watcher) *Server {
+func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.Manager, pairingMgr *pairing.Manager, cfgMgr *config.Manager, wsReg *workspace.Registry, w *watcher.Watcher, rClient *relay.Client) *Server {
 	if pm == nil {
 		pm = process.NewManager(hub)
 	}
@@ -67,6 +69,7 @@ func NewServer(port string, hub *websocket.Hub, projectRoot string, pm *process.
 		configMgr:    cfgMgr,
 		workspaceReg: wsReg,
 		watcher:      w,
+		relayClient:  rClient,
 	}
 }
 
@@ -115,6 +118,52 @@ func (s *Server) Handler() (http.Handler, error) {
 	mux.HandleFunc("/api/processes", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(s.processMgr.List())
+	})
+
+	// Cloud relay WAN status and connection endpoints
+	mux.HandleFunc("/api/relay", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		s.mu.Lock()
+		client := s.relayClient
+		s.mu.Unlock()
+
+		if client == nil {
+			_ = json.NewEncoder(w).Encode(relay.Status{
+				State: relay.StateDisconnected,
+			})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(client.Status())
+	})
+
+	mux.HandleFunc("/api/relay/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			RelayURL string `json:"relayUrl"`
+			Token    string `json:"token"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || strings.TrimSpace(body.RelayURL) == "" {
+			http.Error(w, "Relay URL required", http.StatusBadRequest)
+			return
+		}
+
+		s.mu.Lock()
+		if s.relayClient != nil {
+			s.relayClient.Close()
+		}
+		s.relayClient = relay.NewClient(body.RelayURL, body.Token)
+		client := s.relayClient
+		s.mu.Unlock()
+
+		go func() {
+			_ = client.Connect()
+		}()
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(client.Status())
 	})
 
 	// Dev server execution endpoints
@@ -417,6 +466,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Terminate all supervised child processes to prevent orphans
 	if s.processMgr != nil {
 		s.processMgr.StopAll()
+	}
+
+	// Close WAN relay tunnel if active
+	if s.relayClient != nil {
+		s.relayClient.Close()
 	}
 
 	if s.httpServer == nil {

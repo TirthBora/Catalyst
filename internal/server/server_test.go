@@ -31,7 +31,7 @@ func TestServerHandler(t *testing.T) {
 	}
 
 	hub := websocket.NewHub()
-	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil, nil, nil)
+	srv := server.NewServer("9999", hub, tempDir, nil, nil, nil, nil, nil, nil)
 
 	handler, err := srv.Handler()
 	if err != nil {
@@ -242,6 +242,27 @@ func TestServerHandler(t *testing.T) {
 	if devStartRec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for unvetted script name, got %d", devStartRec.Code)
 	}
+
+	// 18. Test Relay Status API (GET /api/relay)
+	relayReq := httptest.NewRequest(http.MethodGet, "/api/relay", nil)
+	relayRec := httptest.NewRecorder()
+	handler.ServeHTTP(relayRec, relayReq)
+
+	if relayRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for GET /api/relay, got %d", relayRec.Code)
+	}
+	if !strings.Contains(relayRec.Body.String(), "disconnected") {
+		t.Errorf("expected disconnected initial state in /api/relay, got: %s", relayRec.Body.String())
+	}
+
+	// 19. Test Relay Connect API without URL (POST /api/relay/connect) -> should reject
+	relayConnectReq := httptest.NewRequest(http.MethodPost, "/api/relay/connect", strings.NewReader(`{}`))
+	relayConnectRec := httptest.NewRecorder()
+	handler.ServeHTTP(relayConnectRec, relayConnectReq)
+
+	if relayConnectRec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty relayUrl, got %d", relayConnectRec.Code)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -257,7 +278,7 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Use an open high-numbered port for testing
 	port := "19998"
-	srv := server.NewServer(port, hub, tempDir, nil, nil, nil, nil, nil)
+	srv := server.NewServer(port, hub, tempDir, nil, nil, nil, nil, nil, nil)
 
 	errChan := make(chan error, 1)
 	go func() {
