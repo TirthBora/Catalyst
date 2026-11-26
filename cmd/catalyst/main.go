@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -12,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"catalyst/internal/cli"
 	"catalyst/internal/config"
 	"catalyst/internal/monitor"
 	"catalyst/internal/pairing"
@@ -41,30 +41,36 @@ func getLocalIP() string {
 }
 
 func main() {
-	defaultPort := os.Getenv("CATALYST_PORT")
-	if defaultPort == "" {
-		defaultPort = "9999"
-	}
-
-	defaultDir, err := os.Getwd()
+	opts, err := cli.ParseArgs(os.Args[1:])
 	if err != nil {
-		log.Fatalf("Failed to get current directory: %v", err)
+		fmt.Printf("Error: %v\n\n%s", err, cli.HelpText())
+		os.Exit(1)
 	}
 
-	var port string
-	var dir string
-	var doctor bool
+	switch opts.Action {
+	case cli.ActionHelp:
+		fmt.Print(cli.HelpText())
+		return
 
-	flag.StringVar(&port, "port", defaultPort, "HTTP and WebSocket server port")
-	flag.StringVar(&port, "p", defaultPort, "HTTP and WebSocket server port (shorthand)")
-	flag.StringVar(&dir, "dir", defaultDir, "Project root directory to watch and preview")
-	flag.StringVar(&dir, "d", defaultDir, "Project root directory to watch and preview (shorthand)")
-	flag.BoolVar(&doctor, "doctor", false, "Run environment and toolchain diagnostics")
-	flag.Parse()
+	case cli.ActionVersion:
+		fmt.Println(cli.FormatVersion())
+		return
 
-	// If -doctor flag is specified, run diagnostics and exit
-	if doctor {
-		report := runtime.Diagnose(dir)
+	case cli.ActionStatus:
+		res := cli.CheckStatus(opts.Port)
+		fmt.Println(cli.FormatStatus(res))
+		return
+
+	case cli.ActionStop:
+		if err := cli.StopDaemon(opts.Port); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Catalyst daemon on port %s stopped successfully.\n", opts.Port)
+		return
+
+	case cli.ActionDoctor:
+		report := runtime.Diagnose(opts.Dir)
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		fmt.Println("  CATALYST ENVIRONMENT DIAGNOSTICS")
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -91,6 +97,9 @@ func main() {
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		return
 	}
+
+	port := opts.Port
+	dir := opts.Dir
 
 	// 1. Boot the WebSocket Hub
 	hub := websocket.NewHub()
