@@ -178,3 +178,22 @@ func (w *Watcher) Close() {
 	w.mu.Unlock()
 	w.fsWatcher.Close()
 }
+
+// SwitchRoot detaches the current watch tree and attaches the new root directory.
+func (w *Watcher) SwitchRoot(newRoot string) error {
+	w.mu.Lock()
+	for k, t := range w.timers {
+		t.Stop()
+		delete(w.timers, k)
+	}
+
+	oldList := w.fsWatcher.WatchList()
+	for _, p := range oldList {
+		_ = w.fsWatcher.Remove(p)
+	}
+
+	w.rootPath = filepath.Clean(newRoot)
+	w.mu.Unlock()
+
+	return w.watchDirRecursively(w.rootPath)
+}

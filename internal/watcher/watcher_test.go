@@ -98,3 +98,32 @@ func TestWatcherFileEvents(t *testing.T) {
 	// Test SetCustomIgnore
 	w.SetCustomIgnore([]string{"custom-folder"})
 }
+
+func TestSwitchRoot(t *testing.T) {
+	dir1 := t.TempDir()
+	dir2 := t.TempDir()
+
+	hub := websocket.NewHub()
+	w, err := watcher.NewWatcher(dir1, hub)
+	if err != nil {
+		t.Fatalf("failed to create watcher: %v", err)
+	}
+	defer w.Close()
+
+	if err := w.Start(); err != nil {
+		t.Fatalf("failed to start watcher: %v", err)
+	}
+
+	// Switch root to dir2
+	if err := w.SwitchRoot(dir2); err != nil {
+		t.Fatalf("failed to switch root to dir2: %v", err)
+	}
+
+	// Write file in dir2
+	fileInDir2 := filepath.Join(dir2, "app.js")
+	if err := os.WriteFile(fileInDir2, []byte("console.log('switched')"), 0644); err != nil {
+		t.Fatalf("failed to write file in dir2: %v", err)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+}
