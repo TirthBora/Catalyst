@@ -529,6 +529,41 @@
             font-size: 12px;
         }
 
+        /* ---------------- Terminal View ---------------- */
+        .terminal-container {
+            flex: 1;
+            background: #090B0E;
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.5;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .term-line {
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #D1D5DB;
+        }
+
+        .term-line.stderr {
+            color: #F87171;
+        }
+
+        .term-line.system {
+            color: #60A5FA;
+        }
+
+        .term-time {
+            color: var(--text-muted);
+            font-size: 10px;
+            margin-right: 6px;
+            user-select: none;
+        }
+
         /* ---------------- Responsive ---------------- */
         @media (max-width: 840px) {
             .mobile-tabs {
@@ -617,26 +652,39 @@
         </div>
     </div>
 
-    <!-- Activity Log Pane -->
+    <!-- Activity & Terminal Pane -->
     <div class="logs-pane">
         <div class="logs-header">
-            <span class="logs-title">Event Activity</span>
-            <button class="btn" style="padding: 3px 8px; font-size: 11px;" onclick="clearLogs()">Clear</button>
+            <div style="display: flex; gap: 4px;">
+                <button class="filter-chip active" id="pane-tab-files" onclick="switchRightPane('files')">Files</button>
+                <button class="filter-chip" id="pane-tab-proc" onclick="switchRightPane('proc')">Terminal</button>
+            </div>
+            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="clearActiveLogs()">Clear</button>
         </div>
 
-        <div class="filter-bar">
-            <button class="filter-chip active" id="filter-all" onclick="setFilter('all')">All</button>
-            <button class="filter-chip" id="filter-writes" onclick="setFilter('write')">Writes</button>
-            <button class="filter-chip" id="filter-deletes" onclick="setFilter('delete')">Deletes</button>
-        </div>
+        <!-- Files Log View -->
+        <div id="view-files" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div class="filter-bar">
+                <button class="filter-chip active" id="filter-all" onclick="setFilter('all')">All</button>
+                <button class="filter-chip" id="filter-writes" onclick="setFilter('write')">Writes</button>
+                <button class="filter-chip" id="filter-deletes" onclick="setFilter('delete')">Deletes</button>
+            </div>
 
-        <div class="logs-container" id="logs">
-            <div class="log-entry">
-                <div class="log-meta">
-                    <span class="log-pill pill-system">System</span>
-                    <span>Init</span>
+            <div class="logs-container" id="logs">
+                <div class="log-entry">
+                    <div class="log-meta">
+                        <span class="log-pill pill-system">System</span>
+                        <span>Init</span>
+                    </div>
+                    <div class="log-filename">Catalyst workspace initialized.</div>
                 </div>
-                <div class="log-filename">Catalyst workspace initialized.</div>
+            </div>
+        </div>
+
+        <!-- Terminal Output View -->
+        <div id="view-proc" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+            <div class="terminal-container" id="terminal-logs">
+                <div class="term-line system"><span class="term-time">[SYSTEM]</span> Ready for process output.</div>
             </div>
         </div>
     </div>
@@ -753,6 +801,61 @@ function switchView(view) {
     workspaceGrid.classList.add(`view-${view}`);
 }
 
+let activeRightTab = 'files';
+
+function switchRightPane(tab) {
+    activeRightTab = tab;
+    document.getElementById('pane-tab-files').classList.toggle('active', tab === 'files');
+    document.getElementById('pane-tab-proc').classList.toggle('active', tab === 'proc');
+    document.getElementById('view-files').style.display = tab === 'files' ? 'flex' : 'none';
+    document.getElementById('view-proc').style.display = tab === 'proc' ? 'flex' : 'none';
+}
+
+function clearActiveLogs() {
+    if (activeRightTab === 'files') {
+        logs.innerHTML = '';
+    } else {
+        const term = document.getElementById('terminal-logs');
+        if (term) term.innerHTML = '<div class="term-line system"><span class="term-time">[SYSTEM]</span> Log cleared.</div>';
+    }
+}
+
+function appendTerminalLine(stream, text, timestamp = '') {
+    const term = document.getElementById('terminal-logs');
+    if (!term) return;
+
+    const time = timestamp || new Date().toLocaleTimeString();
+    const div = document.createElement('div');
+    div.className = `term-line ${stream}`;
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'term-time';
+    timeSpan.innerText = `[${time}]`;
+
+    div.appendChild(timeSpan);
+    div.appendChild(document.createTextNode(' ' + text));
+
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight; // Auto-scroll to latest
+}
+
+// ---------------- Fetch Existing Processes ----------------
+async function loadProcesses() {
+    try {
+        const res = await fetch('/api/processes');
+        if (!res.ok) return;
+        const procs = await res.json();
+        (procs || []).forEach(p => {
+            (p.logs || []).forEach(l => {
+                appendTerminalLine(l.stream, l.text, new Date(l.timestamp).toLocaleTimeString());
+            });
+        });
+    } catch (err) {
+        console.error('Failed to load processes:', err);
+    }
+}
+loadProcesses();
+
 // ---------------- Logs & Filters ----------------
 function addLogEntry(filename, action = 'write', timestamp = '') {
     const div = document.createElement('div');
@@ -836,6 +939,12 @@ function connect() {
                     pill.style.display = 'flex';
                     ramText.innerText = `RAM: ${mem.usedPct}% (${mem.usedMb}MB)`;
                 }
+            } else if (data.type === 'PROCESS_OUTPUT') {
+                appendTerminalLine(data.payload.stream, data.payload.text, data.payload.timestamp);
+            } else if (data.type === 'PROCESS_STARTED') {
+                appendTerminalLine('system', `Process started: ${data.payload.command} (PID: ${data.payload.pid})`);
+            } else if (data.type === 'PROCESS_STOPPED') {
+                appendTerminalLine('system', `Process stopped (Exit code: ${data.payload.exitCode})`);
             }
         } catch (err) {
             console.error('Invalid WebSocket message:', err);
