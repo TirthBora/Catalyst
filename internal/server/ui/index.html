@@ -1180,7 +1180,7 @@ async function loadProcesses() {
 loadProcesses();
 
 // ---------------- Logs & Filters ----------------
-function addLogEntry(filename, action = 'write', timestamp = '') {
+function addLogEntry(filename, action = 'write', timestamp = '', impact = null) {
     const div = document.createElement('div');
     div.className = 'log-entry';
     div.dataset.action = action;
@@ -1190,13 +1190,32 @@ function addLogEntry(filename, action = 'write', timestamp = '') {
     if (action === 'create') pillClass = 'pill-create';
     if (action === 'delete') pillClass = 'pill-delete';
     if (action === 'rename') pillClass = 'pill-rename';
+    if (action === 'system') pillClass = 'pill-system';
+
+    let impactPill = '';
+    let impactDesc = '';
+    if (impact && impact.level) {
+        let impactColor = 'var(--text-muted)';
+        if (impact.level === 'CRITICAL') impactColor = '#EF4444';
+        else if (impact.level === 'HIGH') impactColor = '#F59E0B';
+        else if (impact.level === 'MEDIUM') impactColor = '#3B82F6';
+
+        impactPill = `<span class="log-pill" style="background: rgba(255,255,255,0.06); color: ${impactColor}; font-weight: 700; border: 1px solid ${impactColor};">${impact.level}</span>`;
+        if (impact.affected) {
+            impactDesc = `<div style="font-size: 10px; color: var(--text-muted); margin-top: 3px;">Scope: ${impact.affected}</div>`;
+        }
+    }
 
     div.innerHTML = `
         <div class="log-meta">
-            <span class="log-pill ${pillClass}">${action}</span>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <span class="log-pill ${pillClass}">${action}</span>
+                ${impactPill}
+            </div>
             <span>${time}</span>
         </div>
         <div class="log-filename">${filename}</div>
+        ${impactDesc}
     `;
 
     if (currentFilter !== 'all' && currentFilter !== action) {
@@ -1253,7 +1272,13 @@ function connect() {
                 const action = data.payload.action || 'write';
                 const file = data.payload.file;
                 const time = data.payload.timestamp;
-                addLogEntry(file, action, time);
+                const impact = {
+                    level: data.payload.impact_level,
+                    affected: data.payload.impact_affected,
+                    strategy: data.payload.impact_strategy,
+                    desc: data.payload.impact_desc
+                };
+                addLogEntry(file, action, time, impact);
                 if (autoReloadEnabled) {
                     reloadFrame();
                 }

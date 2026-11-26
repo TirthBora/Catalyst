@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"catalyst/internal/analyzer"
 	"catalyst/internal/websocket"
 
 	"github.com/fsnotify/fsnotify"
@@ -166,11 +167,16 @@ func (w *Watcher) debounceEmit(filename, action string) {
 		if err != nil {
 			relPath = filename
 		}
-		log.Printf(" File Changed [%s]: %s\n", action, relPath)
-		w.hub.Broadcast("FILE_CHANGED", map[string]string{
-			"file":      relPath,
-			"action":    action,
-			"timestamp": time.Now().Format("15:04:05"),
+		impact := analyzer.EvaluateChange(relPath)
+		log.Printf(" File Changed [%s|%s]: %s (%s)\n", action, impact.Level, relPath, impact.Affected)
+		w.hub.Broadcast("FILE_CHANGED", map[string]interface{}{
+			"file":            relPath,
+			"action":          action,
+			"impact_level":    string(impact.Level),
+			"impact_affected": impact.Affected,
+			"impact_strategy": impact.Strategy,
+			"impact_desc":     impact.Description,
+			"timestamp":       time.Now().Format("15:04:05"),
 		})
 	})
 }
