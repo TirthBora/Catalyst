@@ -609,6 +609,9 @@
         <button class="btn" id="doctor-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openDoctorModal()">
             Diagnostics
         </button>
+        <button class="btn" id="settings-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openSettingsModal()">
+            ⚙️ Settings
+        </button>
         <div class="status-pill" id="system-pill" style="display: none; background: var(--bg-panel); color: var(--text-secondary); border-color: var(--border);">
             <span id="ram-text">RAM: --%</span>
         </div>
@@ -721,6 +724,54 @@
     </div>
 </div>
 
+<!-- Settings Modal -->
+<div class="modal-backdrop" id="settings-modal" style="display: none;" onclick="closeSettingsModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div style="font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">WORKSPACE SETTINGS</div>
+            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="closeSettingsModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Default Preview Target</label>
+                    <input type="text" id="cfg-target" style="width: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; outline: none;" placeholder="/preview/ or /proxy/5173/" />
+                </div>
+
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Default Device Frame</label>
+                    <select id="cfg-device" style="width: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;">
+                        <option value="full">Full Width (Desktop)</option>
+                        <option value="tablet">Tablet Frame (768px)</option>
+                        <option value="mobile">Mobile Frame (375px)</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 6px;">
+                    <div>
+                        <div style="font-size: 12px; font-weight: 600;">Auto-Reload on Save</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Automatically refresh preview when watched files change</div>
+                    </div>
+                    <input type="checkbox" id="cfg-autoreload" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" checked />
+                </div>
+
+                <div>
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Custom Ignored Directories</label>
+                    <input type="text" id="cfg-ignore" style="width: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;" placeholder="e.g. data, docs, temp, cache (comma-separated)" />
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                    <span id="cfg-status-msg" style="font-size: 12px; color: var(--success); display: none;">Settings saved!</span>
+                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                        <button class="btn" onclick="closeSettingsModal()">Cancel</button>
+                        <button class="btn btn-accent" onclick="saveSettings()">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Diagnostics Modal -->
 <div class="modal-backdrop" id="doctor-modal" style="display: none;" onclick="closeDoctorModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
@@ -748,10 +799,32 @@ const workspaceGrid = document.getElementById('workspace-grid');
 
 let detectedPort = '';
 let currentFilter = 'all';
+let autoReloadEnabled = true;
 
 // Load initial target
 const savedTarget = localStorage.getItem('catalystTarget') || '/preview/';
 target.value = savedTarget;
+
+// ---------------- Fetch Workspace Configuration ----------------
+async function loadConfig() {
+    try {
+        const res = await fetch('/api/config');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (cfg.targetUrl && !localStorage.getItem('catalystTarget')) {
+            target.value = cfg.targetUrl;
+        }
+        if (cfg.defaultDevice) {
+            setViewport(cfg.defaultDevice);
+        }
+        if (typeof cfg.autoReload === 'boolean') {
+            autoReloadEnabled = cfg.autoReload;
+        }
+    } catch (err) {
+        console.error('Failed to load config:', err);
+    }
+}
+loadConfig();
 
 // ---------------- Fetch Workspace Metadata ----------------
 async function loadWorkspaceMetadata() {
@@ -961,7 +1034,14 @@ function connect() {
                 const file = data.payload.file;
                 const time = data.payload.timestamp;
                 addLogEntry(file, action, time);
-                reloadFrame();
+                if (autoReloadEnabled) {
+                    reloadFrame();
+                }
+            } else if (data.type === 'CONFIG_UPDATED') {
+                const cfg = data.payload;
+                if (cfg.targetUrl) target.value = cfg.targetUrl;
+                if (cfg.defaultDevice) setViewport(cfg.defaultDevice);
+                if (typeof cfg.autoReload === 'boolean') autoReloadEnabled = cfg.autoReload;
             } else if (data.type === 'SYSTEM_STATS') {
                 const mem = data.payload.memory;
                 const pill = document.getElementById('system-pill');
@@ -1145,6 +1225,64 @@ function copyPairingLink() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 })();
+
+// ---------------- Settings Modal ----------------
+async function openSettingsModal() {
+    try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+            const cfg = await res.json();
+            document.getElementById('cfg-target').value = cfg.targetUrl || '/preview/';
+            document.getElementById('cfg-device').value = cfg.defaultDevice || 'full';
+            document.getElementById('cfg-autoreload').checked = cfg.autoReload !== false;
+            document.getElementById('cfg-ignore').value = (cfg.customIgnore || []).join(', ');
+        }
+    } catch (err) {
+        console.error('Failed to load settings:', err);
+    }
+    document.getElementById('cfg-status-msg').style.display = 'none';
+    document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettingsModal(event) {
+    if (event && event.target !== document.getElementById('settings-modal') && event.target !== event.currentTarget) {
+        return;
+    }
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+async function saveSettings() {
+    const targetUrl = document.getElementById('cfg-target').value.trim() || '/preview/';
+    const defaultDevice = document.getElementById('cfg-device').value;
+    const autoReload = document.getElementById('cfg-autoreload').checked;
+    const ignoreRaw = document.getElementById('cfg-ignore').value;
+    const customIgnore = ignoreRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+    const payload = {
+        targetUrl,
+        defaultDevice,
+        autoReload,
+        customIgnore
+    };
+
+    try {
+        const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            autoReloadEnabled = autoReload;
+            target.value = targetUrl;
+            setViewport(defaultDevice);
+            const msg = document.getElementById('cfg-status-msg');
+            msg.style.display = 'inline';
+            setTimeout(() => { msg.style.display = 'none'; }, 2500);
+        }
+    } catch (err) {
+        console.error('Failed to save settings:', err);
+    }
+}
 
 connect();
 </script>
