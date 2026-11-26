@@ -1,71 +1,111 @@
-# catalyst README
+# Catalyst
 
-This is the README for your extension "catalyst". After writing up a brief description, we recommend including the following sections.
+> **Centralized, browser-accessible second-screen development workspace companion.**
 
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+Code on one screen. Observe, monitor, and interact with your development environment on another.
 
 ---
 
-## Following extension guidelines
+## What is Catalyst?
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+Catalyst transforms your secondary device—such as an iPad, Android tablet, phone, or secondary monitor—into an interactive real-time development dashboard. 
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+Instead of constantly switching between your code editor, browser preview, terminal logs, and system monitors on a single display, Catalyst exposes a high-performance local workspace you can open in any browser on your network.
 
-## Working with Markdown
+---
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+## Key Features
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+* **🖥️ Live Application Preview**: Built-in reverse proxy with WebSocket HMR support for Next.js, Vite, React, Vue, Flask, and static HTML. Works seamlessly across devices even when dev servers bind only to `localhost`.
+* **⚡ Real-Time Hot Reload**: Recursive filesystem monitoring using `fsnotify` with 100ms debouncing, dynamic subfolder discovery, and cache-busting preview refreshes.
+* **📱 Instant Mobile Pairing**: Connect any phone or tablet instantly by scanning an on-screen SVG QR code or typing a friendly 6-character PIN (`CAT-XXXX`).
+* **🎛️ One-Click Dev Server Runner**: Start, stop, and restart vetted project development scripts (`npm run dev`, `go run .`, `cargo run`) directly from your secondary screen with pairing token authorization.
+* **📜 Streaming Terminal Log Viewer**: View compiler logs, dev server stdout, and stderr live on your second screen with auto-scroll and stream coloring.
+* **📂 Multi-Workspace Switcher**: Register and switch between different project directories dynamically through the dashboard dropdown without restarting the server.
+* **🩺 Environment Doctor & Diagnostics**: Inspect installed compiler toolchains (Go, Node.js, npm, Python, Git, Rust) and validate workspace dependency health.
+* **⚙️ Persistent Configuration Engine**: Customize preview targets, device frames, auto-reload behavior, and custom ignored directories saved in `.catalyst/config.json`.
+* **🎨 Linear / Raycast Aesthetic**: Refined dark theme UI optimized for tablets and phones, with device frame emulation (Desktop, Tablet 768px, Mobile 375px).
 
-## For more information
+---
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+## Quickstart
 
-**Enjoy!**
+### 1. Using the CLI
+
+Run Catalyst directly from any project root:
+
+```bash
+# Start the development workspace on default port 9999
+catalyst dev
+
+# Or specify a custom port and directory
+catalyst dev -p 8080 -d /path/to/project
+
+# Check status of the running daemon
+catalyst status
+
+# Diagnose your local development environment
+catalyst doctor
+
+# Stop the running daemon cleanly
+catalyst stop
+
+# View version and build info
+catalyst version
+```
+
+### 2. Using the VS Code Extension
+
+1. Open your project in **Visual Studio Code**.
+2. Catalyst automatically boots in the background when your workspace opens.
+3. Click the **`$(broadcast) Catalyst Active`** item in the status bar or run the command `Catalyst: Open Workspace`.
+4. Scan the pairing QR code or open `http://<your-ip>:9999` on your tablet or phone.
+
+---
+
+## Configuration (`.catalyst/config.json`)
+
+Catalyst automatically creates and maintains a workspace configuration file:
+
+```json
+{
+  "port": "9999",
+  "targetUrl": "/preview/",
+  "customIgnore": ["data", "docs", "cache"],
+  "defaultDevice": "full",
+  "autoReload": true,
+  "theme": "dark"
+}
+```
+
+Settings can also be modified in real-time using the **⚙️ Settings** modal on the dashboard.
+
+---
+
+## Building from Source
+
+### Prerequisites
+* Go 1.22+
+* Node.js 20+ & npm
+
+### Build Commands
+
+```bash
+# Build the local host binary (bin/catalyst.exe or bin/catalyst)
+npm run build:daemon
+
+# Cross-compile for Windows, Linux, and macOS (amd64 and arm64)
+npm run build:all
+
+# Run the complete Go test suite
+npm run test:go
+
+# Compile the VS Code extension
+npm run compile
+```
+
+---
+
+## License
+
+MIT
