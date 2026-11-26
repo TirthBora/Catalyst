@@ -12,3 +12,12 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+docs/**
+scripts/**
+internal/**
+cmd/**
+go.mod
+go.sum
+bin/catalyst-*
+*.vsix
+
