@@ -740,6 +740,7 @@
             <div style="display: flex; gap: 4px;">
                 <button class="filter-chip active" id="pane-tab-files" onclick="switchRightPane('files')">Files</button>
                 <button class="filter-chip" id="pane-tab-proc" onclick="switchRightPane('proc')">Terminal</button>
+                <button class="filter-chip" id="pane-tab-asst" onclick="switchRightPane('asst')">Assistant</button>
             </div>
             <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="clearActiveLogs()">Clear</button>
         </div>
@@ -772,6 +773,22 @@
                 <span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent); user-select: none;">$</span>
                 <input type="text" id="term-input" placeholder="Type input to dev server (e.g. rs, y, h)..." style="flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-mono); font-size: 11px; color: var(--text-primary);" onkeydown="handleTermKey(event)" />
                 <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="sendTermInput()">Send</button>
+            </div>
+        </div>
+
+        <!-- Assistant Insights & Error Helper View -->
+        <div id="view-asst" style="display: none; flex-direction: column; flex: 1; overflow-y: auto; padding: 12px; gap: 12px;">
+            <div id="asst-active-error" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 11px; color: var(--error); text-transform: uppercase;">
+                    <span>⚠️ Root Cause Analysis</span>
+                </div>
+                <div id="asst-error-summary" style="font-size: 12px; margin-top: 4px; color: var(--text-primary);">--</div>
+                <div id="asst-error-suggestions" style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+
+            <div class="diag-section-title">Workspace Insights</div>
+            <div id="asst-insights-list" style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="color: var(--text-muted); font-size: 12px;">Evaluating workspace...</div>
             </div>
         </div>
     </div>
@@ -1009,14 +1026,20 @@ function switchRightPane(tab) {
     activeRightTab = tab;
     document.getElementById('pane-tab-files').classList.toggle('active', tab === 'files');
     document.getElementById('pane-tab-proc').classList.toggle('active', tab === 'proc');
+    document.getElementById('pane-tab-asst').classList.toggle('active', tab === 'asst');
     document.getElementById('view-files').style.display = tab === 'files' ? 'flex' : 'none';
     document.getElementById('view-proc').style.display = tab === 'proc' ? 'flex' : 'none';
+    document.getElementById('view-asst').style.display = tab === 'asst' ? 'flex' : 'none';
+
+    if (tab === 'asst') {
+        loadAssistantInsights();
+    }
 }
 
 function clearActiveLogs() {
     if (activeRightTab === 'files') {
         logs.innerHTML = '';
-    } else {
+    } else if (activeRightTab === 'proc') {
         const term = document.getElementById('terminal-logs');
         if (term) term.innerHTML = '<div class="term-line system"><span class="term-time">[SYSTEM]</span> Log cleared.</div>';
     }
@@ -1154,6 +1177,9 @@ function connect() {
                 appendTerminalLine('system', `Process started: ${data.payload.command} (PID: ${data.payload.pid})`);
             } else if (data.type === 'PROCESS_STOPPED') {
                 appendTerminalLine('system', `Process stopped (Exit code: ${data.payload.exitCode})`);
+                if (data.payload.exitCode !== 0 && data.payload.exitCode !== null) {
+                    analyzeCurrentError();
+                }
             } else if (data.type === 'WORKSPACE_CHANGED') {
                 wsName.innerText = data.payload.name;
                 wsBadge.innerText = data.payload.framework || data.payload.type || 'Workspace';
@@ -1249,6 +1275,82 @@ function closeDoctorModal(event) {
         return;
     }
     document.getElementById('doctor-modal').style.display = 'none';
+}
+
+// ---------------- Assistant Insights & Error Helper ----------------
+async function loadAssistantInsights() {
+    try {
+        const res = await fetch('/api/assistant/insights');
+        if (!res.ok) return;
+        const insights = await res.json();
+        const container = document.getElementById('asst-insights-list');
+
+        if (insights && insights.length > 0) {
+            let html = '';
+            insights.forEach(ins => {
+                let pillClass = 'pill-create';
+                if (ins.severity === 'warning') pillClass = 'pill-delete';
+                if (ins.severity === 'tip') pillClass = 'pill-rename';
+
+                html += `
+                    <div class="log-entry" style="border-left-color: ${ins.severity === 'warning' ? 'var(--warning)' : 'var(--accent)'};">
+                        <div class="log-meta">
+                            <span class="log-pill ${pillClass}">${ins.severity}</span>
+                            <span style="font-weight: 600;">${ins.title}</span>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${ins.detail}</div>
+                        ${ins.action ? `<div style="font-size: 11px; color: var(--text-primary); font-weight: 500; margin-top: 6px; background: rgba(255,255,255,0.04); padding: 4px 6px; border-radius: 4px;">👉 ${ins.action}</div>` : ''}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No configuration issues detected. Workspace looks healthy!</div>';
+        }
+    } catch (err) {
+        console.error('Failed to load insights:', err);
+    }
+}
+
+async function analyzeCurrentError() {
+    const term = document.getElementById('terminal-logs');
+    if (!term) return;
+    const lines = Array.from(term.querySelectorAll('.term-line')).slice(-25).map(el => el.innerText);
+
+    try {
+        const res = await fetch('/api/assistant/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logs: lines })
+        });
+        if (!res.ok) return;
+        const analysis = await res.json();
+
+        if (analysis.matched) {
+            const card = document.getElementById('asst-active-error');
+            const summary = document.getElementById('asst-error-summary');
+            const suggestions = document.getElementById('asst-error-suggestions');
+
+            summary.innerText = analysis.summary;
+            let sugHtml = '';
+            (analysis.suggestions || []).forEach(s => {
+                sugHtml += `
+                    <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 11px;">
+                        <div style="font-weight: 600; color: var(--text-primary);">${s.title}</div>
+                        ${s.command ? `<div style="font-family: var(--font-mono); color: var(--accent); margin-top: 4px; cursor: pointer;" onclick="navigator.clipboard.writeText('${s.command}'); alert('Copied: ${s.command}')">📋 <code>${s.command}</code> (click to copy)</div>` : ''}
+                        ${s.action ? `<div style="color: var(--text-muted); margin-top: 2px;">${s.action}</div>` : ''}
+                    </div>
+                `;
+            });
+            suggestions.innerHTML = sugHtml;
+            card.style.display = 'block';
+
+            // Show alert toast with error summary
+            showAlertToast('critical', `Build Error: ${analysis.summary}`);
+        }
+    } catch (e) {
+        console.error('Failed to analyze error:', e);
+    }
 }
 
 // ---------------- Pairing Modal & Verification ----------------
