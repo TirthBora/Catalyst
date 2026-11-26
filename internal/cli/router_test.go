@@ -53,6 +53,12 @@ func TestParseArgs(t *testing.T) {
 	if err != nil || devOpts.Action != cli.ActionDev || devOpts.Port != "7777" || devOpts.Dir != "/workspace" {
 		t.Errorf("expected dev on port 7777 dir /workspace, got %+v", devOpts)
 	}
+
+	// 5. Relay flags
+	relayOpts, err := cli.ParseArgs([]string{"dev", "-relay", "wss://relay.example.com", "-relay-token", "tok123"})
+	if err != nil || relayOpts.RelayURL != "wss://relay.example.com" || relayOpts.RelayToken != "tok123" {
+		t.Errorf("expected relay flags to parse, got %+v", relayOpts)
+	}
 }
 
 func TestHelpText(t *testing.T) {

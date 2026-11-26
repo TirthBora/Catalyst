@@ -16,6 +16,7 @@ import (
 	"catalyst/internal/monitor"
 	"catalyst/internal/pairing"
 	"catalyst/internal/process"
+	"catalyst/internal/relay"
 	"catalyst/internal/runtime"
 	"catalyst/internal/server"
 	"catalyst/internal/watcher"
@@ -137,19 +138,30 @@ func main() {
 	localIP := getLocalIP()
 	pairingMgr := pairing.NewManager()
 
+	var rClient *relay.Client
+	if opts.RelayURL != "" {
+		rClient = relay.NewClient(opts.RelayURL, opts.RelayToken)
+		go func() {
+			_ = rClient.Connect()
+		}()
+	}
+
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println("  CATALYST V1 IS ACTIVE")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Printf("  Watching : %s\n", dir)
 	fmt.Printf("  Connect  : http://%s:%s\n", localIP, port)
 	fmt.Printf("  Pair PIN : %s\n", pairingMgr.PIN())
+	if opts.RelayURL != "" {
+		fmt.Printf("  WAN Relay: %s\n", opts.RelayURL)
+	}
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	// 3. Boot the Process Manager
 	pm := process.NewManager(hub)
 
 	// 4. Boot the HTTP Server
-	srv := server.NewServer(port, hub, dir, pm, pairingMgr, cfgMgr, nil, w, nil)
+	srv := server.NewServer(port, hub, dir, pm, pairingMgr, cfgMgr, nil, w, rClient)
 
 	// Intercept shutdown signals
 	sigChan := make(chan os.Signal, 1)

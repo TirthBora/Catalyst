@@ -21,9 +21,11 @@ const (
 
 // Options holds common command-line options parsed by the CLI.
 type Options struct {
-	Action Action
-	Port   string
-	Dir    string
+	Action     Action
+	Port       string
+	Dir        string
+	RelayURL   string
+	RelayToken string
 }
 
 // HelpText returns the formatted Catalyst CLI usage manual.
@@ -42,9 +44,11 @@ Available Commands:
   help       Show this help message
 
 Flags:
-  -p, -port string   Port to bind HTTP/WebSocket server (default: 9999)
-  -d, -dir  string   Workspace directory to watch and preview (default: .)
-  -h, -help          Show help information
+  -p, -port string          Port to bind HTTP/WebSocket server (default: 9999)
+  -d, -dir  string          Workspace directory to watch and preview (default: .)
+  -r, -relay string         CatalystRelay WebSocket URL for WAN tunneling (optional)
+  -relay-token string       Authentication token for the cloud relay server
+  -h, -help                 Show help information
 `
 }
 
@@ -93,6 +97,8 @@ func ParseArgs(args []string) (Options, error) {
 
 	var port string
 	var dir string
+	var relayURL string
+	var relayToken string
 	var help bool
 	var doctorFlag bool
 
@@ -101,10 +107,16 @@ func ParseArgs(args []string) (Options, error) {
 		defaultPort = "9999"
 	}
 
+	defaultRelayURL := os.Getenv("CATALYST_RELAY_URL")
+	defaultRelayToken := os.Getenv("CATALYST_RELAY_TOKEN")
+
 	fs.StringVar(&port, "port", defaultPort, "")
 	fs.StringVar(&port, "p", defaultPort, "")
 	fs.StringVar(&dir, "dir", ".", "")
 	fs.StringVar(&dir, "d", ".", "")
+	fs.StringVar(&relayURL, "relay", defaultRelayURL, "")
+	fs.StringVar(&relayURL, "r", defaultRelayURL, "")
+	fs.StringVar(&relayToken, "relay-token", defaultRelayToken, "")
 	fs.BoolVar(&help, "help", false, "")
 	fs.BoolVar(&help, "h", false, "")
 	fs.BoolVar(&doctorFlag, "doctor", false, "")
@@ -125,6 +137,8 @@ func ParseArgs(args []string) (Options, error) {
 
 	opts.Port = port
 	opts.Dir = dir
+	opts.RelayURL = relayURL
+	opts.RelayToken = relayToken
 
 	return opts, nil
 }
