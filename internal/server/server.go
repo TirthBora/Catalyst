@@ -128,6 +128,29 @@ func (s *Server) Handler() (http.Handler, error) {
 		_ = json.NewEncoder(w).Encode(s.configMgr.Get())
 	})
 
+	// Local-only shutdown endpoint for CLI 'catalyst stop'
+	mux.HandleFunc("/api/shutdown", func(w http.ResponseWriter, r *http.Request) {
+		// Enforce loopback security: only localhost can trigger shutdown
+		remoteHost := r.RemoteAddr
+		if !strings.HasPrefix(remoteHost, "127.0.0.1") &&
+			!strings.HasPrefix(remoteHost, "[::1]") &&
+			!strings.HasPrefix(remoteHost, "localhost") {
+			http.Error(w, "Forbidden: shutdown is restricted to localhost", http.StatusForbidden)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "shutting_down"})
+
+		// Trigger shutdown asynchronously so response can be delivered first
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			_ = s.Shutdown(ctx)
+		}()
+	})
+
 	// Pairing status and connected devices endpoint
 	mux.HandleFunc("/api/pairing", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
