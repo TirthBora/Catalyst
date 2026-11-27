@@ -1,33 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalyst Workspace</title>
+    <title>Catalyst — Developer Workspace</title>
     <style>
-        :root {
-            --bg-primary: #07090E;
-            --bg-secondary: #0D0F16;
-            --bg-panel: #131722;
-            --bg-elevated: #1B2130;
-            --text-primary: #F8FAFC;
-            --text-secondary: #94A3B8;
-            --text-muted: #64748B;
-            --border: #22293A;
-            --border-subtle: #161A26;
-            --accent: #6366F1;
-            --accent-hover: #4F46E5;
-            --accent-subtle: rgba(99, 102, 241, 0.15);
-            --success: #10B981;
-            --success-subtle: rgba(16, 185, 129, 0.15);
-            --warning: #F59E0B;
-            --warning-subtle: rgba(245, 158, 11, 0.15);
-            --error: #EF4444;
-            --error-subtle: rgba(239, 68, 68, 0.15);
-            --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-            --font-mono: "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
+        /* ==========================================================================
+           STRICT MONOCHROME DESIGN SYSTEM TOKENS (PHASE 2)
+           ========================================================================== */
+        :root,
+        [data-theme="light"] {
+            --bg-app: #FFFFFF;
+            --bg-sidebar: #F7F7F7;
+            --bg-surface: #FFFFFF;
+            --bg-subtle: #F7F7F7;
+            --bg-hover: #EFEFEF;
+            --bg-active: #E8E8E8;
+            --bg-inverse: #171717;
+
+            --border-subtle: #E8E8E8;
+            --border-default: #DCDCDC;
+            --border-strong: #C4C4C4;
+
+            --text-primary: #171717;
+            --text-secondary: #525252;
+            --text-muted: #737373;
+            --text-inverse: #FFFFFF;
+
+            --terminal-bg: #FAFAFA;
+            --terminal-text: #171717;
+            --terminal-muted: #737373;
+
+            --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
         }
 
+        [data-theme="dark"] {
+            --bg-app: #111111;
+            --bg-sidebar: #161616;
+            --bg-surface: #191919;
+            --bg-subtle: #1E1E1E;
+            --bg-hover: #242424;
+            --bg-active: #2B2B2B;
+            --bg-inverse: #F5F5F5;
+
+            --border-subtle: #262626;
+            --border-default: #303030;
+            --border-strong: #404040;
+
+            --text-primary: #F5F5F5;
+            --text-secondary: #B3B3B3;
+            --text-muted: #808080;
+            --text-inverse: #111111;
+
+            --terminal-bg: #0D0D0D;
+            --terminal-text: #E5E5E5;
+            --terminal-muted: #737373;
+
+            --font-sans: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        /* ---------------- Global Reset & Typography ---------------- */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -36,1892 +76,1813 @@
 
         body {
             font-family: var(--font-sans);
-            background: var(--bg-primary);
+            background: var(--bg-app);
             color: var(--text-primary);
             height: 100vh;
+            width: 100vw;
             display: flex;
-            flex-direction: column;
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
         }
 
-        /* ---------------- Header ---------------- */
-        header {
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 10px 18px;
+        .mono, pre, code, .tabular {
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ---------------- Focus Accessibility ---------------- */
+        :focus-visible {
+            outline: 1px solid var(--text-primary);
+            outline-offset: 1px;
+        }
+
+        /* ---------------- AppShell Structure (PHASE 3) ---------------- */
+        #app-shell {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 220px;
+            height: 100%;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
             flex-shrink: 0;
-            height: 52px;
+            transition: width 0.18s ease-in-out;
+            user-select: none;
+            z-index: 50;
         }
 
-        .header-left {
+        #sidebar.collapsed {
+            width: 52px;
+        }
+
+        .sidebar-brand {
+            height: 48px;
+            padding: 0 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: var(--text-primary);
         }
 
         .brand-mark {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-            font-size: 13px;
-            letter-spacing: 1.5px;
-            color: var(--text-primary);
-        }
-
-        .brand-icon {
-            width: 20px;
-            height: 20px;
-            background: var(--accent);
-            border-radius: 4px;
+            width: 18px;
+            height: 18px;
+            background: var(--text-primary);
+            color: var(--text-inverse);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 11px;
-            font-weight: 800;
-            color: white;
+            font-weight: 900;
+            border-radius: var(--radius-sm);
         }
 
-        .workspace-chip {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 3px 10px;
+        .ws-selector {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .ws-btn {
+            width: 100%;
+            padding: 6px 10px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
             font-size: 12px;
-            color: var(--text-secondary);
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.12s;
         }
 
-        .badge {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: var(--accent-subtle);
-            color: var(--accent);
-            border: 1px solid rgba(59, 130, 246, 0.25);
+        .ws-btn:hover {
+            background: var(--bg-hover);
         }
 
-        .header-right {
+        .sidebar-nav {
+            flex: 1;
+            padding: 10px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .status-pill {
+            padding: 7px 10px;
+            border-radius: var(--radius-md);
             font-size: 12px;
             font-weight: 500;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background: var(--success-subtle);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--text-secondary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--bg-active);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .nav-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
         }
 
-        .status-pill.disconnected {
-            background: var(--error-subtle);
-            color: var(--error);
-            border-color: rgba(239, 68, 68, 0.2);
-        }
-
-        .status-pill.connecting {
-            background: var(--warning-subtle);
-            color: var(--warning);
-            border-color: rgba(245, 158, 11, 0.2);
-        }
-
-        .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: currentColor;
-        }
-
-        /* ---------------- Mobile Segmented Control ---------------- */
-        .mobile-tabs {
+        #sidebar.collapsed .nav-text,
+        #sidebar.collapsed .brand-name,
+        #sidebar.collapsed .ws-selector,
+        #sidebar.collapsed .badge-pill {
             display: none;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 6px 12px;
-            gap: 8px;
         }
 
-        .tab-btn {
+        #sidebar.collapsed .sidebar-brand {
+            padding: 0;
+            justify-content: center;
+        }
+
+        #sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 8px 0;
+        }
+
+        /* ---------------- Center View Container ---------------- */
+        #main-container {
             flex: 1;
-            padding: 6px 12px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            font-size: 12px;
-            font-weight: 500;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .tab-btn.active {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        /* ---------------- Workspace Layout ---------------- */
-        .workspace {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            overflow: hidden;
-            background: var(--bg-primary);
-        }
-
-        /* ---------------- Preview Section ---------------- */
-        .preview-pane {
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--border);
-            background: var(--bg-primary);
+            min-width: 0;
+            height: 100%;
             overflow: hidden;
+            background: var(--bg-app);
         }
 
-        .preview-toolbar {
-            background: var(--bg-secondary);
-            padding: 8px 14px;
+        /* Top Bar */
+        #topbar {
+            height: 44px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            z-index: 40;
+        }
+
+        .breadcrumbs {
             display: flex;
             align-items: center;
             gap: 8px;
-            border-bottom: 1px solid var(--border);
-            flex-wrap: wrap;
-        }
-
-        .url-box {
-            flex: 1;
-            min-width: 220px;
-            display: flex;
-            align-items: center;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0 8px;
-            transition: border-color 0.15s;
-        }
-
-        .url-box:focus-within {
-            border-color: var(--accent);
-        }
-
-        .url-prefix {
             font-size: 12px;
             color: var(--text-muted);
-            user-select: none;
-            margin-right: 4px;
         }
 
-        .url-box input {
-            flex: 1;
-            background: transparent;
-            border: none;
+        .breadcrumbs span.current {
             color: var(--text-primary);
-            font-family: var(--font-mono);
-            font-size: 12px;
-            padding: 7px 0;
-            outline: none;
+            font-weight: 600;
         }
 
+        .topbar-center {
+            flex: 1;
+            max-width: 380px;
+            margin: 0 20px;
+        }
+
+        .search-trigger {
+            width: 100%;
+            height: 28px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            transition: border-color 0.12s;
+        }
+
+        .search-trigger:hover {
+            border-color: var(--border-strong);
+            color: var(--text-secondary);
+        }
+
+        .kbd-hint {
+            padding: 1px 5px;
+            background: var(--bg-app);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Primary UI Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            padding: 7px 12px;
-            border-radius: 6px;
+            padding: 5px 10px;
+            border-radius: var(--radius-md);
             font-size: 12px;
             font-weight: 500;
+            border: 1px solid var(--border-default);
+            background: var(--bg-surface);
+            color: var(--text-primary);
             cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
+            transition: background 0.12s, border-color 0.12s;
             user-select: none;
+            white-space: nowrap;
         }
 
         .btn:hover {
-            background: var(--border);
+            background: var(--bg-hover);
+            border-color: var(--border-strong);
         }
 
-        .btn-accent {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
+        .btn:active {
+            background: var(--bg-active);
         }
 
-        .btn-accent:hover {
-            background: var(--accent-hover);
+        .btn-primary {
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            border-color: var(--bg-inverse);
         }
 
-        .presets {
-            display: flex;
-            gap: 6px;
-            align-items: center;
+        .btn-primary:hover {
+            opacity: 0.92;
+            border-color: var(--bg-inverse);
         }
 
-        .preset-chip {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: color 0.15s, border-color 0.15s;
+        .btn-icon {
+            padding: 5px;
+            min-width: 28px;
+            min-height: 28px;
         }
 
-        .preset-chip:hover {
-            color: var(--text-primary);
-            border-color: var(--text-muted);
-        }
-
-        .viewport-modes {
-            display: flex;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 2px;
-            gap: 2px;
-        }
-
-        .mode-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            padding: 4px 8px;
-            font-size: 11px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .mode-btn.active {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-        }
-
-        .preview-viewport {
+        /* ---------------- Workspace Split & Views ---------------- */
+        #workspace-body {
             flex: 1;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #090B0E;
-            overflow: auto;
-            padding: 10px;
-        }
-
-        .preview-frame-container {
-            width: 100%;
-            height: 100%;
-            transition: width 0.2s ease;
-            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-            background: #fff;
+            min-height: 0;
             position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .reload-pulse-bar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: var(--accent);
-            opacity: 0;
-            transition: opacity 0.15s ease-out;
-            z-index: 10;
-        }
-
-        .reload-pulse-bar.active {
-            opacity: 1;
-        }
-
-        .browser-chrome {
-            height: 32px;
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 12px;
-            gap: 12px;
-            user-select: none;
-            flex-shrink: 0;
-        }
-
-        .traffic-dots {
-            display: flex;
-            gap: 6px;
-        }
-
-        .t-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .chrome-url {
-            flex: 1;
-            max-width: 360px;
-            margin: 0 auto;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 2px 8px;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-        }
-
-        /* ---------------- Logs & Activity Pane ---------------- */
-        .logs-pane {
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-secondary);
             overflow: hidden;
         }
 
-        .logs-header {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .logs-title {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
-
-        .filter-bar {
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            gap: 6px;
-            background: var(--bg-panel);
-        }
-
-        .filter-chip {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 4px;
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid transparent;
-            cursor: pointer;
-        }
-
-        .filter-chip.active {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-            border-color: var(--border);
-        }
-
-        .logs-container {
+        #view-viewport {
             flex: 1;
-            padding: 10px;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            min-width: 0;
+            overflow-y: auto;
+            position: relative;
         }
 
-        .log-entry {
-            padding: 8px 10px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border-subtle);
-            border-left: 3px solid var(--accent);
-            border-radius: 0 4px 4px 0;
+        /* Contextual Right Panel */
+        #right-panel {
+            width: 280px;
+            height: 100%;
+            background: var(--bg-sidebar);
+            border-left: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: width 0.18s ease-in-out;
+            overflow: hidden;
+            z-index: 30;
+        }
+
+        #right-panel.hidden {
+            width: 0;
+            border-left: none;
+        }
+
+        .panel-section {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .section-header {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Telemetry Metric Bars (Ultra-thin Monochrome) */
+        .metric-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .metric-item {
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
 
-        .log-meta {
+        .metric-label-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             font-size: 11px;
-            color: var(--text-muted);
+            color: var(--text-secondary);
         }
 
-        .log-pill {
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 1px 6px;
-            border-radius: 3px;
+        .metric-track {
+            height: 3px;
+            background: var(--bg-active);
+            border-radius: 2px;
+            overflow: hidden;
+            width: 100%;
         }
 
-        .pill-write { background: var(--success-subtle); color: var(--success); }
-        .pill-create { background: var(--accent-subtle); color: var(--accent); }
-        .pill-delete { background: var(--error-subtle); color: var(--error); }
-        .pill-rename { background: var(--warning-subtle); color: var(--warning); }
-        .pill-system { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+        .metric-fill {
+            height: 100%;
+            background: var(--text-primary);
+            transition: width 0.3s ease;
+        }
 
-        .log-filename {
+        /* ---------------- Bottom Terminal & Logs Drawer (PHASE 3.5) ---------------- */
+        #bottom-drawer {
+            height: 220px;
+            min-height: 36px;
+            max-height: 600px;
+            background: var(--terminal-bg);
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 45;
+        }
+
+        #bottom-drawer.collapsed {
+            height: 36px !important;
+        }
+
+        .drawer-resizer {
+            position: absolute;
+            top: -3px;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            cursor: ns-resize;
+            z-index: 10;
+        }
+
+        .drawer-strip {
+            height: 36px;
+            padding: 0 12px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .drawer-tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .drawer-tab {
+            padding: 3px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        .drawer-tab:hover {
             color: var(--text-primary);
+        }
+
+        .drawer-tab.active {
+            background: var(--bg-active);
+            color: var(--text-primary);
+            font-weight: 600;
+            border-color: var(--border-subtle);
+        }
+
+        .terminal-viewport {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--terminal-bg);
+            color: var(--terminal-text);
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            line-height: 1.55;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .term-row {
+            white-space: pre-wrap;
             word-break: break-all;
         }
 
-        /* ---------------- Diagnostics Modal ---------------- */
-        .modal-backdrop {
+        .term-row.stderr {
+            font-weight: 600;
+        }
+
+        .term-row.stdin {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .term-row.system {
+            color: var(--text-muted);
+        }
+
+        .term-input-strip {
+            height: 30px;
+            background: var(--terminal-bg);
+            border-top: 1px solid var(--border-subtle);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .term-input-strip input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--terminal-text);
+        }
+
+        /* ---------------- View Screens (PHASE 4) ---------------- */
+        .screen-view {
+            padding: 24px;
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100%;
+        }
+
+        .screen-view.active {
+            display: flex;
+        }
+
+        .view-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .view-title-group h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .view-title-group p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Hairline Data Tables */
+        .data-table-container {
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: var(--bg-surface);
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        table.data-table th {
+            padding: 10px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-subtle);
+        }
+
+        table.data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        table.data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.data-table tr:hover td {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* Monochrome Status Indicators (Section 2.2) */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .status-dot-active {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-primary);
+        }
+
+        .status-dot-idle {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            border: 1px solid var(--text-muted);
+            background: transparent;
+        }
+
+        .status-badge-err {
+            padding: 1px 5px;
+            border: 1px solid var(--text-primary);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        /* ---------------- Application Preview Frame (Live App) ---------------- */
+        .preview-window-frame {
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            flex: 1;
+            min-height: 480px;
+        }
+
+        .preview-chrome {
+            height: 36px;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .chrome-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chrome-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            border: 1px solid var(--border-strong);
+            background: var(--bg-subtle);
+        }
+
+        .chrome-bar {
+            flex: 1;
+            max-width: 440px;
+            margin: 0 auto;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
+            padding: 2px 10px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .reload-pulse {
+            position: absolute;
+            top: 36px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--text-primary);
+            opacity: 0;
+            transition: opacity 0.15s ease-out;
+            z-index: 20;
+        }
+
+        .reload-pulse.active {
+            opacity: 1;
+        }
+
+        /* ---------------- Overlays, Modals & Command Palette ---------------- */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
             background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
         }
 
-        .modal-content {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+        .modal-box {
             width: 90%;
-            max-width: 540px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 520px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .modal-header {
             padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 13px;
+            font-weight: 600;
         }
 
         .modal-body {
-            padding: 16px 18px;
+            padding: 18px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
         }
 
-        .diag-section-title {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 8px;
+        /* ---------------- Command Palette (⌘K) ---------------- */
+        #command-palette-modal {
+            max-width: 540px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
         }
 
-        .diag-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .diag-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-subtle);
-            border-radius: 6px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .diag-card-title {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .diag-card-val {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .check-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 10px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-subtle);
-            border-radius: 6px;
-            font-size: 12px;
-        }
-
-        /* ---------------- Workspace Dropdown ---------------- */
-        .ws-dropdown-menu {
-            position: absolute;
-            top: 48px;
-            left: 120px;
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            min-width: 260px;
-            z-index: 500;
-            padding: 6px 4px;
-        }
-
-        .ws-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.15s;
-        }
-
-        .ws-item:hover {
-            background: var(--bg-elevated);
-        }
-
-        .ws-item.active {
-            background: var(--bg-secondary);
-            border-left: 2px solid var(--accent);
-        }
-
-        /* ---------------- Terminal View ---------------- */
-        .terminal-container {
-            flex: 1;
-            background: #090B0E;
-            padding: 10px 12px;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            line-height: 1.5;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .term-line {
-            white-space: pre-wrap;
-            word-break: break-all;
-            color: #D1D5DB;
-        }
-
-        .term-line.stderr {
-            color: #F87171;
-        }
-
-        .term-line.system {
-            color: #60A5FA;
-        }
-
-        .term-line.stdin {
-            color: #38BDF8;
-            font-weight: 600;
-        }
-
-        .alert-toast {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--warning);
-            padding: 10px 14px;
-            border-radius: 4px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            font-size: 12px;
-            max-width: 320px;
+        .palette-input-wrap {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .alert-toast.critical {
-            border-left-color: var(--error);
+        .palette-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
         }
 
-        .term-time {
-            color: var(--text-muted);
-            font-size: 10px;
-            margin-right: 6px;
-            user-select: none;
+        .palette-list {
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
-        /* ---------------- PIN Authentication Gate ---------------- */
+        .palette-item {
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .palette-item:hover, .palette-item.selected {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        /* ---------------- PIN Authentication Gate Screen ---------------- */
+        #auth-lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-app);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-card {
+            width: 90%;
+            max-width: 400px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 36px 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            text-align: center;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        .pin-input-group {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
         .pin-box {
             width: 44px;
-            height: 52px;
+            height: 50px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-md);
             text-align: center;
             font-family: var(--font-mono);
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
-            background: var(--bg-secondary);
-            border: 2px solid var(--border);
-            border-radius: 8px;
             color: var(--text-primary);
             text-transform: uppercase;
             outline: none;
-            transition: border-color 0.15s, box-shadow 0.15s;
         }
 
         .pin-box:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+            border-color: var(--text-primary);
         }
 
-        /* ---------------- Responsive ---------------- */
-        @media (max-width: 840px) {
-            .mobile-tabs {
-                display: flex;
-            }
+        /* ---------------- Toast Notifications ---------------- */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
 
-            .workspace {
-                grid-template-columns: 1fr;
-            }
-
-            .workspace.view-preview .logs-pane {
-                display: none;
-            }
-
-            .workspace.view-logs .preview-pane {
-                display: none;
-            }
-
-            .preview-pane {
-                border-right: none;
-            }
+        .toast-item {
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
 <body>
 
-<!-- Mandatory Device Authentication Lock Screen -->
-<div id="auth-lock-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #08090C; z-index: 3000; align-items: center; justify-content: center;">
-    <div style="background: #11141B; border: 1px solid #232836; border-radius: 12px; padding: 36px 30px; width: 90%; max-width: 420px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 16px;">
-        <div class="brand-mark" style="font-size: 15px; letter-spacing: 2px;">
-            <div class="brand-icon" style="width: 24px; height: 24px;">C</div>
-            CATALYST
+<!-- ==========================================================================
+     MANDATORY AUTHENTICATION LOCK SCREEN (PHASE 0 / REQUIREMENT)
+     ========================================================================== -->
+<div id="auth-lock-screen" style="display: none;">
+    <div class="auth-card">
+        <div class="brand-logo" style="margin-bottom: 4px;">
+            <div class="brand-mark">C</div>
+            <span>CATALYST</span>
         </div>
-        <div style="font-size: 15px; font-weight: 700; color: #E8EAF0;">Device Pairing Required</div>
-        <div style="font-size: 12px; color: #9299A8; line-height: 1.5;">Enter the 6-character Pairing PIN displayed in your primary Catalyst terminal:</div>
-
-        <div style="display: flex; gap: 8px; margin: 10px 0;" id="pin-boxes-row">
-            <input type="text" maxlength="1" class="pin-box" id="p-0" oninput="onPinChar(0, event)" onkeydown="onPinKey(0, event)" />
-            <input type="text" maxlength="1" class="pin-box" id="p-1" oninput="onPinChar(1, event)" onkeydown="onPinKey(1, event)" />
-            <input type="text" maxlength="1" class="pin-box" id="p-2" oninput="onPinChar(2, event)" onkeydown="onPinKey(2, event)" />
-            <input type="text" maxlength="1" class="pin-box" id="p-3" oninput="onPinChar(3, event)" onkeydown="onPinKey(3, event)" />
-            <input type="text" maxlength="1" class="pin-box" id="p-4" oninput="onPinChar(4, event)" onkeydown="onPinKey(4, event)" />
-            <input type="text" maxlength="1" class="pin-box" id="p-5" oninput="onPinChar(5, event)" onkeydown="onPinKey(5, event)" />
+        <div style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Device Authentication</div>
+        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+            Enter the 6-character Pairing PIN shown in your primary Catalyst terminal session:
         </div>
 
-        <div id="pin-auth-error" style="color: #EF4444; font-size: 11px; min-height: 16px;"></div>
+        <div class="pin-input-group" id="pin-group">
+            <input type="text" maxlength="1" class="pin-box" id="pin-0" oninput="onPinChar(0, event)" onkeydown="onPinKey(0, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="pin-1" oninput="onPinChar(1, event)" onkeydown="onPinKey(1, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="pin-2" oninput="onPinChar(2, event)" onkeydown="onPinKey(2, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="pin-3" oninput="onPinChar(3, event)" onkeydown="onPinKey(3, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="pin-4" oninput="onPinChar(4, event)" onkeydown="onPinKey(4, event)" />
+            <input type="text" maxlength="1" class="pin-box" id="pin-5" oninput="onPinChar(5, event)" onkeydown="onPinKey(5, event)" />
+        </div>
 
-        <button class="btn btn-accent" id="pin-unlock-btn" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 600;" onclick="submitEnteredPIN()">
-            Unlock Workspace
+        <div id="pin-error-msg" class="mono" style="font-size: 11px; color: var(--text-primary); min-height: 16px;"></div>
+
+        <button class="btn btn-primary" style="width: 100%; padding: 10px 0; font-weight: 600;" onclick="submitLockPIN()">
+            Verify Device & Unlock
         </button>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Or scan the pairing QR code from your phone camera</div>
+        <div style="font-size: 11px; color: var(--text-muted);">Or scan the QR code from your mobile camera</div>
     </div>
 </div>
 
-<header>
-    <div class="header-left" style="position: relative;">
-        <div class="brand-mark">
-            <div class="brand-icon">C</div>
-            CATALYST
-        </div>
-        <div class="workspace-chip" id="ws-chip" style="cursor: pointer; user-select: none;" onclick="toggleWorkspaceMenu(event)">
-            <span id="ws-name">Workspace</span>
-            <span style="font-size: 8px; color: var(--text-muted); margin-left: 2px;">▼</span>
-        </div>
-        <div class="badge" id="ws-badge">Detecting...</div>
+<!-- ==========================================================================
+     APPLICATION SHELL (PHASE 3)
+     ========================================================================== -->
+<div id="app-shell">
 
-        <!-- Workspace Dropdown Menu -->
-        <div class="ws-dropdown-menu" id="ws-menu" style="display: none;" onclick="event.stopPropagation()">
-            <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); padding: 6px 10px; text-transform: uppercase;">Switch Project</div>
-            <div id="ws-menu-list" style="display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto;">
-                <!-- dynamic workspace items -->
+    <!-- 3.1 Left Navigation Sidebar -->
+    <aside id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">
+                <div class="brand-mark">C</div>
+                <span class="brand-name">CATALYST</span>
             </div>
-            <div style="border-top: 1px solid var(--border); margin-top: 6px; padding: 6px 8px;">
-                <button class="btn" style="width: 100%; font-size: 11px; padding: 4px 8px;" onclick="promptAddWorkspace()">+ Add Project Path</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="header-right">
-        <button class="btn" id="devices-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openPairingModal()">
-            📱 Devices (<span id="devices-count">0</span>)
-        </button>
-        <button class="btn" id="doctor-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openDoctorModal()">
-            Diagnostics
-        </button>
-        <button class="btn" id="settings-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openSettingsModal()">
-            ⚙️ Settings
-        </button>
-        <div class="status-pill" id="system-pill" style="display: none; background: var(--bg-panel); color: var(--text-secondary); border-color: var(--border);">
-            <span id="ram-text">RAM: --%</span>
-        </div>
-        <div class="status-pill" id="status-pill">
-            <div class="dot"></div>
-            <span id="status-text">Connecting</span>
-        </div>
-    </div>
-</header>
-
-<div class="mobile-tabs">
-    <button class="tab-btn active" id="tab-preview" onclick="switchView('preview')">Preview</button>
-    <button class="tab-btn" id="tab-logs" onclick="switchView('logs')">Activity Log</button>
-</div>
-
-<div class="workspace view-preview" id="workspace-grid">
-    <!-- Preview Pane -->
-    <div class="preview-pane">
-        <div class="preview-toolbar">
-            <div class="url-box">
-                <input type="text" id="target" placeholder="/preview/" />
-            </div>
-
-            <button class="btn btn-accent" onclick="reloadFrame()">
-                Reload
+            <button class="btn btn-icon" onclick="toggleSidebar()" title="Toggle Sidebar (Ctrl+B)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
             </button>
-
-            <div class="presets">
-                <span class="preset-chip" onclick="setTarget('/preview/')">Static Preview</span>
-                <span class="preset-chip" id="proxy-chip" style="display: none;" onclick="setProxyTarget()">Proxy Dev</span>
-            </div>
-
-            <!-- Dev Server Runner Controls -->
-            <div class="dev-runner-bar" id="dev-runner-bar" style="display: none; align-items: center; gap: 6px; padding-left: 8px; border-left: 1px solid var(--border);">
-                <select id="dev-script-select" style="background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-primary); font-size: 11px; padding: 4px 6px; border-radius: 4px; outline: none;"></select>
-                <button class="btn btn-accent" id="dev-run-btn" style="padding: 4px 10px; font-size: 11px;" onclick="toggleDevServer()">▶ Run</button>
-                <button class="btn" id="dev-restart-btn" style="display: none; padding: 4px 8px; font-size: 11px;" onclick="restartDevServer()" title="Restart Dev Server">⟳</button>
-            </div>
-
-            <!-- Plugin Quick Actions -->
-            <div id="plugin-actions-bar" style="display: none; align-items: center; gap: 4px; padding-left: 8px; border-left: 1px solid var(--border);"></div>
-
-            <div class="viewport-modes">
-                <button class="mode-btn active" id="mode-full" onclick="setViewport('full')">Full</button>
-                <button class="mode-btn" id="mode-tablet" onclick="setViewport('tablet')">Tablet</button>
-                <button class="mode-btn" id="mode-mobile" onclick="setViewport('mobile')">Mobile</button>
-            </div>
         </div>
 
-        <div class="preview-viewport">
-            <div class="preview-frame-container" id="frame-container">
-                <div class="reload-pulse-bar" id="reload-bar"></div>
-                <div class="browser-chrome">
-                    <div class="traffic-dots">
-                        <span class="t-dot" style="background: #EF4444;"></span>
-                        <span class="t-dot" style="background: #F59E0B;"></span>
-                        <span class="t-dot" style="background: #10B981;"></span>
-                    </div>
-                    <div class="chrome-url" id="chrome-url-display">
-                        <span style="font-size: 10px; color: var(--success);">🔒</span>
-                        <span id="chrome-url-text">/preview/</span>
-                    </div>
+        <div class="ws-selector">
+            <button class="ws-btn" onclick="openWorkspaceModal()" id="active-ws-btn">
+                <span id="active-ws-name" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Workspace</span>
+                <span style="font-size: 10px; color: var(--text-muted); margin-left: 6px;">▾</span>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a class="nav-item active" href="#overview" onclick="navigateRoute('overview')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+                <span class="nav-text">Overview</span>
+            </a>
+            <a class="nav-item" href="#projects" onclick="navigateRoute('projects')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg></span>
+                <span class="nav-text">Projects</span>
+            </a>
+            <a class="nav-item" href="#ai" onclick="navigateRoute('ai')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+                <span class="nav-text">AI Command Center</span>
+            </a>
+            <a class="nav-item" href="#agents" onclick="navigateRoute('agents')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <span class="nav-text">Agents</span>
+            </a>
+            <a class="nav-item" href="#runtime" onclick="navigateRoute('runtime')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7h-7m-4 0H3m17 5H11m-4 0H3m17 5h-7m-4 0H3"/><circle cx="11" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="11" cy="17" r="2"/></svg></span>
+                <span class="nav-text">Runtime Manager</span>
+            </a>
+            <a class="nav-item" href="#processes" onclick="navigateRoute('processes')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
+                <span class="nav-text">Process Manager</span>
+            </a>
+            <a class="nav-item" href="#terminal" onclick="navigateRoute('terminal')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+                <span class="nav-text">Terminal</span>
+            </a>
+            <a class="nav-item" href="#events" onclick="navigateRoute('events')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+                <span class="nav-text">Event Bus</span>
+            </a>
+            <a class="nav-item" href="#monitoring" onclick="navigateRoute('monitoring')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
+                <span class="nav-text">Monitoring</span>
+            </a>
+            <a class="nav-item" href="#plugins" onclick="navigateRoute('plugins')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/></svg></span>
+                <span class="nav-text">Plugins</span>
+            </a>
+            <a class="nav-item" href="#network" onclick="navigateRoute('network')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></span>
+                <span class="nav-text">Network Utilities</span>
+            </a>
+            <a class="nav-item" href="#settings" onclick="navigateRoute('settings')">
+                <span class="nav-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                <span class="nav-text">Settings</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- 3.2 Center Container -->
+    <div id="main-container">
+
+        <!-- Top Navigation Bar -->
+        <header id="topbar">
+            <div class="breadcrumbs">
+                <span>Workspace</span>
+                <span>/</span>
+                <span class="current" id="crumb-active-route">Overview</span>
+            </div>
+
+            <div class="topbar-center">
+                <div class="search-trigger" onclick="openCommandPalette()">
+                    <span>Search workspace or actions...</span>
+                    <span class="kbd-hint">⌘K</span>
                 </div>
-                <iframe id="frame" src="about:blank"></iframe>
-            </div>
-        </div>
-    </div>
-
-    <!-- Activity & Terminal Pane -->
-    <div class="logs-pane">
-        <div class="logs-header">
-            <div style="display: flex; gap: 4px;">
-                <button class="filter-chip active" id="pane-tab-files" onclick="switchRightPane('files')">Files</button>
-                <button class="filter-chip" id="pane-tab-proc" onclick="switchRightPane('proc')">Terminal</button>
-                <button class="filter-chip" id="pane-tab-asst" onclick="switchRightPane('asst')">Assistant</button>
-            </div>
-            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="clearActiveLogs()">Clear</button>
-        </div>
-
-        <!-- Files Log View -->
-        <div id="view-files" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-            <div class="filter-bar">
-                <button class="filter-chip active" id="filter-all" onclick="setFilter('all')">All</button>
-                <button class="filter-chip" id="filter-writes" onclick="setFilter('write')">Writes</button>
-                <button class="filter-chip" id="filter-deletes" onclick="setFilter('delete')">Deletes</button>
             </div>
 
-            <div class="logs-container" id="logs">
-                <div class="log-entry">
-                    <div class="log-meta">
-                        <span class="log-pill pill-system">System</span>
-                        <span>Init</span>
-                    </div>
-                    <div class="log-filename">Catalyst workspace initialized.</div>
+            <div class="topbar-actions">
+                <!-- Runtime status indicator -->
+                <div class="status-badge" id="runtime-status-pill" style="cursor: pointer;" onclick="navigateRoute('runtime')">
+                    <span class="status-dot-active" id="live-dot"></span>
+                    <span class="mono" id="live-status-text">LISTENING</span>
                 </div>
-            </div>
-        </div>
 
-        <!-- Terminal Output View -->
-        <div id="view-proc" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
-            <div class="terminal-container" id="terminal-logs">
-                <div class="term-line system"><span class="term-time">[SYSTEM]</span> Ready for process output.</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg-panel); border-top: 1px solid var(--border);">
-                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent); user-select: none;">$</span>
-                <input type="text" id="term-input" placeholder="Type input to dev server (e.g. rs, y, h)..." style="flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-mono); font-size: 11px; color: var(--text-primary);" onkeydown="handleTermKey(event)" />
-                <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="sendTermInput()">Send</button>
-            </div>
-        </div>
-
-        <!-- Assistant Insights & Error Helper View -->
-        <div id="view-asst" style="display: none; flex-direction: column; flex: 1; overflow-y: auto; padding: 12px; gap: 12px;">
-            <div id="asst-active-error" style="display: none; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 10px;">
-                <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 11px; color: var(--error); text-transform: uppercase;">
-                    <span>⚠️ Root Cause Analysis</span>
-                </div>
-                <div id="asst-error-summary" style="font-size: 12px; margin-top: 4px; color: var(--text-primary);">--</div>
-                <div id="asst-error-suggestions" style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;"></div>
-                <button class="btn btn-accent" id="asst-ai-btn" style="margin-top: 10px; padding: 4px 10px; font-size: 11px;" onclick="requestAIExplanation()">
-                    ✨ Explain with AI
+                <!-- Theme Toggle Button -->
+                <button class="btn btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
                 </button>
-                <div id="asst-ai-response" style="display: none; margin-top: 8px; padding: 10px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; color: var(--text-primary);"></div>
+
+                <!-- Toggle Right Panel -->
+                <button class="btn btn-icon" onclick="toggleRightPanel()" title="Toggle Telemetry Panel">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+                </button>
             </div>
+        </header>
 
-            <div class="diag-section-title">Workspace Insights</div>
-            <div id="asst-insights-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="color: var(--text-muted); font-size: 12px;">Evaluating workspace...</div>
-            </div>
-        </div>
-    </div>
-</div>
+        <!-- 3.3 Central Main Workspace Body -->
+        <div id="workspace-body">
 
-<!-- Device Pairing Modal -->
-<div class="modal-backdrop" id="pairing-modal" style="display: none;" onclick="closePairingModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <div style="font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">DEVICE PAIRING & DISCOVERY</div>
-            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="closePairingModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 8px 0;">
-                <div style="font-size: 12px; color: var(--text-secondary);">Scan this QR code with your phone or tablet camera to connect:</div>
-                <div style="background: var(--bg-secondary); padding: 8px; border-radius: 8px; border: 1px solid var(--border);">
-                    <img id="pairing-qr-img" src="/api/pairing/qr" alt="Scan QR" width="160" height="160" style="display: block;" />
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 12px; color: var(--text-muted);">Pairing Code:</span>
-                    <span id="pairing-pin-display" style="font-family: var(--font-mono); font-size: 15px; font-weight: 800; letter-spacing: 2px; color: var(--accent); background: var(--accent-subtle); padding: 3px 10px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.3);">------</span>
-                    <button class="btn" id="copy-link-btn" style="padding: 3px 8px; font-size: 11px;" onclick="copyPairingLink()">Copy Link</button>
-                </div>
-            </div>
+            <!-- Active Viewport Screens -->
+            <main id="view-viewport">
 
-            <div class="diag-section-title" style="margin-top: 10px;">Connected Devices (<span id="connected-dev-count">0</span>)</div>
-            <div id="devices-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="color: var(--text-muted); font-size: 12px;">No secondary devices connected yet.</div>
-            </div>
-
-            <!-- Cloud Relay (WAN) Section -->
-            <div class="diag-section-title" style="margin-top: 14px;">Cloud Relay (WAN Remote Access)</div>
-            <div style="background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 12px; font-weight: 600;">Relay Status:</span>
-                    <span id="relay-status-pill" class="log-pill pill-system">Disconnected</span>
-                </div>
-                <div id="relay-session-row" style="display: none; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border-subtle);">
-                    <span style="font-size: 11px; color: var(--text-muted);">WAN Session ID:</span>
-                    <span id="relay-session-display" style="font-family: var(--font-mono); font-size: 13px; font-weight: 700; color: var(--accent);">--</span>
-                </div>
-                <div id="relay-connect-form" style="display: flex; gap: 6px; margin-top: 4px;">
-                    <input type="text" id="relay-url-input" style="flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--text-primary); outline: none;" placeholder="wss://your-relay-tunnel.com/ws" />
-                    <button class="btn btn-accent" style="padding: 4px 10px; font-size: 11px;" onclick="connectRelayTunnel()">Connect</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Settings Modal -->
-<div class="modal-backdrop" id="settings-modal" style="display: none;" onclick="closeSettingsModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <div style="font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">WORKSPACE SETTINGS</div>
-            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="closeSettingsModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-                <div>
-                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Default Preview Target</label>
-                    <input type="text" id="cfg-target" style="width: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; outline: none;" placeholder="/preview/ or /proxy/5173/" />
-                </div>
-
-                <div>
-                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Default Device Frame</label>
-                    <select id="cfg-device" style="width: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;">
-                        <option value="full">Full Width (Desktop)</option>
-                        <option value="tablet">Tablet Frame (768px)</option>
-                        <option value="mobile">Mobile Frame (375px)</option>
-                    </select>
-                </div>
-
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 6px;">
-                    <div>
-                        <div style="font-size: 12px; font-weight: 600;">Auto-Reload on Save</div>
-                        <div style="font-size: 11px; color: var(--text-muted);">Automatically refresh preview when watched files change</div>
+                <!-- 4.1 Screen: Overview -->
+                <section class="screen-view active" id="screen-overview">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1 id="hero-greeting">Good day. What are we building?</h1>
+                            <p id="hero-subtext">Active workspace connected on local and WAN interfaces.</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn" onclick="openPairingModal()">📱 Pair Device</button>
+                            <button class="btn btn-primary" onclick="triggerDevRun()">▶ Run Dev Server</button>
+                        </div>
                     </div>
-                    <input type="checkbox" id="cfg-autoreload" style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" checked />
-                </div>
 
-                <div>
-                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Custom Ignored Directories</label>
-                    <input type="text" id="cfg-ignore" style="width: 100%; margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;" placeholder="e.g. data, docs, temp, cache (comma-separated)" />
-                </div>
+                    <!-- Live Application Preview Frame -->
+                    <div class="preview-window-frame">
+                        <div class="reload-pulse" id="reload-pulse-bar"></div>
+                        <div class="preview-chrome">
+                            <div class="chrome-left">
+                                <span class="chrome-dot"></span>
+                                <span class="chrome-dot"></span>
+                                <span class="chrome-dot"></span>
+                            </div>
+                            <div class="chrome-bar">
+                                <span class="mono" style="font-size: 10px; color: var(--text-muted);">HOST:9999</span>
+                                <span class="mono" id="preview-url-label">/preview/</span>
+                                <span style="cursor: pointer;" onclick="reloadPreviewFrame()" title="Reload Frame">⟳</span>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button class="btn btn-icon" onclick="setDeviceMode('desktop')" title="Desktop View">🖥</button>
+                                <button class="btn btn-icon" onclick="setDeviceMode('tablet')" title="Tablet View (768px)">📱</button>
+                                <button class="btn btn-icon" onclick="setDeviceMode('mobile')" title="Mobile View (375px)">📲</button>
+                            </div>
+                        </div>
+                        <iframe id="preview-frame" src="about:blank" style="width: 100%; height: 100%; border: none; flex: 1;"></iframe>
+                    </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                    <span id="cfg-status-msg" style="font-size: 12px; color: var(--success); display: none;">Settings saved!</span>
-                    <div style="display: flex; gap: 8px; margin-left: auto;">
-                        <button class="btn" onclick="closeSettingsModal()">Cancel</button>
-                        <button class="btn btn-accent" onclick="saveSettings()">Save Changes</button>
+                    <!-- Recent Projects Table -->
+                    <div style="margin-top: 10px;">
+                        <div class="section-header">Registered Workspaces</div>
+                        <div class="data-table-container">
+                            <table class="data-table" id="overview-projects-table">
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Path</th>
+                                        <th>Framework</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading projects...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4.2 Screen: AI Command Center -->
+                <section class="screen-view" id="screen-ai">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>AI Command Center</h1>
+                            <p>Intelligent root cause analysis and code diagnostic engine.</p>
+                        </div>
+                        <button class="btn" onclick="clearAIConsole()">Clear History</button>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 14px; flex: 1;">
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+                            <label class="section-header" style="margin: 0;">Analyze Error or Log Snippet</label>
+                            <textarea id="ai-input-prompt" rows="4" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 10px; font-family: var(--font-mono); font-size: 12px; color: var(--text-primary); outline: none; resize: vertical;" placeholder="Paste compiler error, traceback, or test failure..."></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div class="mono" style="font-size: 11px; color: var(--text-muted);" id="ai-model-tag">Model: local-gateway</div>
+                                <button class="btn btn-primary" onclick="submitAIAnalysis()">✨ Explain & Propose Fix</button>
+                            </div>
+                        </div>
+
+                        <div id="ai-response-box" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg); padding: 18px; flex-direction: column; gap: 12px;">
+                            <div class="section-header" style="margin: 0;">Diagnostic Output</div>
+                            <div id="ai-response-content" class="mono" style="font-size: 12px; line-height: 1.6; white-space: pre-wrap; color: var(--text-primary);"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4.3 Screen: Projects Workspace -->
+                <section class="screen-view" id="screen-projects">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Projects Workspace</h1>
+                            <p>Multi-workspace registry and project directory switcher.</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="promptAddProject()">+ Register Project Path</button>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="full-projects-table">
+                            <thead>
+                                <tr>
+                                    <th>Workspace Name</th>
+                                    <th>Filesystem Path</th>
+                                    <th>Type</th>
+                                    <th>Framework</th>
+                                    <th>Active</th>
+                                    <th style="text-align: right;">Switch</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4.4 Screen: Runtime Manager -->
+                <section class="screen-view" id="screen-runtime">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Runtime Manager</h1>
+                            <p>Detected host compilers, runtimes, and workspace dependency health.</p>
+                        </div>
+                        <button class="btn" onclick="refreshRuntimeHealth()">Rescan System</button>
+                    </div>
+
+                    <div class="section-header">Host Toolchains</div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="runtime-toolchains-table">
+                            <thead>
+                                <tr>
+                                    <th>Runtime</th>
+                                    <th>Version</th>
+                                    <th>Executable Path</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="section-header" style="margin-top: 20px;">Workspace Environment Checks</div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="runtime-checks-table">
+                            <thead>
+                                <tr>
+                                    <th>Check</th>
+                                    <th>Result Message</th>
+                                    <th>State</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4.5 Screen: Process Manager -->
+                <section class="screen-view" id="screen-processes">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Process Manager</h1>
+                            <p>Supervised development tasks and background process lifecycle.</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="proc-script-select" style="background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 4px 8px; font-size: 12px; color: var(--text-primary); outline: none;"></select>
+                            <button class="btn btn-primary" id="proc-start-btn" onclick="triggerDevRun()">▶ Launch</button>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="processes-table">
+                            <thead>
+                                <tr>
+                                    <th>Process ID</th>
+                                    <th>Command</th>
+                                    <th>PID</th>
+                                    <th>Status</th>
+                                    <th>Started</th>
+                                    <th style="text-align: right;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4.6 Screen: Dedicated Terminal -->
+                <section class="screen-view" id="screen-terminal">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Interactive Terminal</h1>
+                            <p>Bidirectional console output and standard input stream.</p>
+                        </div>
+                        <button class="btn" onclick="clearTerminalView()">Clear Buffer</button>
+                    </div>
+                    <div style="background: var(--terminal-bg); border: 1px solid var(--border-default); border-radius: var(--radius-lg); flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 400px;">
+                        <div class="terminal-viewport" id="dedicated-terminal-viewport" style="flex: 1;"></div>
+                        <div class="term-input-strip">
+                            <span class="mono" style="font-size: 11px; color: var(--text-muted);">$</span>
+                            <input type="text" id="dedicated-term-input" placeholder="Type dev command or input (e.g. rs, dev)..." onkeydown="handleDedicatedTermKey(event)">
+                            <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="sendDedicatedTermInput()">Submit</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4.7 Screen: Event Bus -->
+                <section class="screen-view" id="screen-events">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Event Bus</h1>
+                            <p>Real-time WebSocket event stream and structured message inspection.</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn" id="event-pause-btn" onclick="toggleEventBusPause()">Pause Stream</button>
+                            <button class="btn" onclick="clearEventBusLogs()">Clear Events</button>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="events-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Event Type</th>
+                                    <th>Summary / Affected</th>
+                                    <th style="text-align: right;">Inspect</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4.8 Screen: Monitoring -->
+                <section class="screen-view" id="screen-monitoring">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>System Monitoring</h1>
+                            <p>Hardware resource telemetry and process memory usage.</p>
+                        </div>
+                        <span class="mono" id="monitoring-host-label" style="font-size: 12px; color: var(--text-muted);">HOST</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                            <div class="section-header" style="margin: 0;">Physical RAM Used</div>
+                            <div class="mono" id="mon-ram-pct" style="font-size: 28px; font-weight: 700; color: var(--text-primary);">--%</div>
+                            <div class="mono" id="mon-ram-detail" style="font-size: 11px; color: var(--text-muted);">-- / -- MB</div>
+                            <div class="metric-track"><div class="metric-fill" id="mon-ram-bar" style="width: 0%;"></div></div>
+                        </div>
+
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                            <div class="section-header" style="margin: 0;">CPU Cores Available</div>
+                            <div class="mono" id="mon-cpu-count" style="font-size: 28px; font-weight: 700; color: var(--text-primary);">--</div>
+                            <div class="mono" id="mon-cpu-arch" style="font-size: 11px; color: var(--text-muted);">-- / --</div>
+                        </div>
+
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; display: flex; flex-direction: column; gap: 10px;">
+                            <div class="section-header" style="margin: 0;">Catalyst Uptime</div>
+                            <div class="mono" id="mon-uptime" style="font-size: 28px; font-weight: 700; color: var(--text-primary);">--s</div>
+                            <div class="mono" id="mon-goroutines" style="font-size: 11px; color: var(--text-muted);">Goroutines: --</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4.9 Screen: Agents -->
+                <section class="screen-view" id="screen-agents">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Agents Workspace</h1>
+                            <p>Autonomous task worker pool and agent execution status.</p>
+                        </div>
+                    </div>
+                    <!-- Honest State: Agent workers are roadmap Phase 5 -->
+                    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 40px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                        <div style="font-size: 14px; font-weight: 600;">Agent Workers Not Configured</div>
+                        <p style="font-size: 12px; color: var(--text-secondary); max-width: 440px;">
+                            Autonomous subagent orchestration is planned for Phase 5. Background automation can currently be executed via the <strong>Plugins</strong> manifest.
+                        </p>
+                        <button class="btn" style="margin-top: 6px;" onclick="navigateRoute('plugins')">Inspect Plugins</button>
+                    </div>
+                </section>
+
+                <!-- 4.10 Screen: Plugins -->
+                <section class="screen-view" id="screen-plugins">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Plugin Manifest & Shortcuts</h1>
+                            <p>Custom developer actions registered in .catalyst/plugins.json.</p>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="plugins-table">
+                            <thead>
+                                <tr>
+                                    <th>Action Name</th>
+                                    <th>Identifier</th>
+                                    <th>Command</th>
+                                    <th>Args</th>
+                                    <th style="text-align: right;">Trigger</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4.11 Screen: Network Utilities -->
+                <section class="screen-view" id="screen-network">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Network Utilities & Cloud Relay</h1>
+                            <p>Local network interfaces, pairing codes, and WAN tunneling.</p>
+                        </div>
+                        <button class="btn" onclick="openPairingModal()">Display Pairing PIN & QR</button>
+                    </div>
+
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Property</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Local Binding Port</td>
+                                    <td class="mono" id="net-port-val">:9999</td>
+                                    <td><span class="status-badge"><span class="status-dot-active"></span>Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Cloud Relay Tunnel</td>
+                                    <td class="mono" id="net-relay-url">--</td>
+                                    <td><span id="net-relay-status" class="mono" style="font-size: 11px;">Disconnected</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Active Pairing PIN</td>
+                                    <td class="mono" id="net-pin-val" style="font-weight: 700;">------</td>
+                                    <td><span class="status-badge"><span class="status-dot-active"></span>Ready</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="section-header" style="margin-top: 20px;">Connected Devices</div>
+                    <div class="data-table-container">
+                        <table class="data-table" id="network-devices-table">
+                            <thead>
+                                <tr>
+                                    <th>Device Address</th>
+                                    <th>Client User-Agent</th>
+                                    <th>Connected At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No secondary devices connected</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4.12 Screen: Settings -->
+                <section class="screen-view" id="screen-settings">
+                    <div class="view-header">
+                        <div class="view-title-group">
+                            <h1>Workspace Settings</h1>
+                            <p>Persistent configuration stored in .catalyst/config.json.</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="saveSettingsForm()">Save Changes</button>
+                    </div>
+
+                    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; display: flex; flex-direction: column; gap: 16px; max-width: 600px;">
+                        <div>
+                            <label class="section-header" style="margin-bottom: 6px;">Appearance Theme</label>
+                            <select id="cfg-theme-select" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;" onchange="changeTheme(this.value)">
+                                <option value="dark">Dark Theme (Monochrome)</option>
+                                <option value="light">Light Theme (Monochrome)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="section-header" style="margin-bottom: 6px;">Default Preview Target URL</label>
+                            <input type="text" id="cfg-target-input" class="mono" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;" placeholder="/preview/ or /proxy/5173/">
+                        </div>
+
+                        <div>
+                            <label class="section-header" style="margin-bottom: 6px;">Custom Ignored Directories</label>
+                            <input type="text" id="cfg-ignore-input" class="mono" style="width: 100%; background: var(--bg-subtle); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 8px 10px; color: var(--text-primary); font-size: 12px; outline: none;" placeholder="cache, logs, temp (comma-separated)">
+                        </div>
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--border-subtle);">
+                            <div>
+                                <div style="font-size: 12px; font-weight: 600;">Auto-Reload On File Save</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Refreshes preview frame automatically upon change</div>
+                            </div>
+                            <input type="checkbox" id="cfg-autoreload-chk" style="width: 16px; height: 16px; cursor: pointer;">
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <!-- 3.4 Right Contextual Panel -->
+            <aside id="right-panel">
+                <div class="panel-section">
+                    <div class="section-header">
+                        <span>Active Telemetry</span>
+                        <span class="mono" id="rp-uptime" style="font-size: 10px; color: var(--text-muted);">--s</span>
+                    </div>
+                    <div class="metric-group">
+                        <div class="metric-item">
+                            <div class="metric-label-row">
+                                <span>Physical RAM</span>
+                                <span class="mono" id="rp-ram-label">--%</span>
+                            </div>
+                            <div class="metric-track"><div class="metric-fill" id="rp-ram-fill" style="width: 0%;"></div></div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-label-row">
+                                <span>CPU Cores</span>
+                                <span class="mono" id="rp-cpu-label">-- cores</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="panel-section" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                    <div class="section-header">
+                        <span>Recent Activity</span>
+                        <span class="mono" id="rp-event-count" style="font-size: 10px; color: var(--text-muted);">0</span>
+                    </div>
+                    <div id="rp-activity-stream" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="color: var(--text-muted); font-size: 11px;">Listening for filesystem events...</div>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+
+        <!-- 3.5 Bottom Integrated Terminal & Logs Drawer -->
+        <div id="bottom-drawer">
+            <div class="drawer-resizer" id="drawer-drag"></div>
+            <div class="drawer-strip">
+                <div class="drawer-tabs">
+                    <button class="drawer-tab active" id="dtab-term" onclick="switchDrawerTab('term')">Terminal</button>
+                    <button class="drawer-tab" id="dtab-events" onclick="switchDrawerTab('events')">System Events</button>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-icon" onclick="clearActiveDrawerLog()" title="Clear">✕</button>
+                    <button class="btn btn-icon" onclick="toggleBottomDrawer()" title="Collapse (Ctrl+J)">−</button>
+                </div>
+            </div>
+
+            <!-- Drawer Body: Terminal View -->
+            <div id="drawer-view-term" style="flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden;">
+                <div class="terminal-viewport" id="drawer-term-viewport">
+                    <div class="term-row system">[SYSTEM] Catalyst operational stream ready.</div>
+                </div>
+                <div class="term-input-strip">
+                    <span class="mono" style="font-size: 11px; color: var(--text-muted);">$</span>
+                    <input type="text" id="drawer-term-input" placeholder="Type dev command or input..." onkeydown="handleDrawerTermKey(event)">
+                    <button class="btn" style="padding: 2px 8px; font-size: 10px;" onclick="sendDrawerTermInput()">Submit</button>
+                </div>
+            </div>
+
+            <!-- Drawer Body: System Events View -->
+            <div id="drawer-view-events" style="flex: 1; display: none; overflow-y: auto; padding: 8px 12px; font-family: var(--font-mono); font-size: 11px;">
+                <div id="drawer-events-stream"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ==========================================================================
+     COMMAND PALETTE (⌘K)
+     ========================================================================== -->
+<div class="modal-overlay" id="command-palette-modal" style="display: none;" onclick="closeCommandPalette(event)">
+    <div class="modal-box" id="command-palette-box" onclick="event.stopPropagation()">
+        <div class="palette-input-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="palette-input" id="palette-search-input" placeholder="Type a route, workspace, or action..." oninput="filterPalette(this.value)" onkeydown="handlePaletteKey(event)">
+            <span class="kbd-hint">ESC</span>
+        </div>
+        <div class="palette-list" id="palette-results-list">
+            <!-- Dynamically populated commands -->
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     PAIRING & DEVICE DISCOVERY MODAL
+     ========================================================================== -->
+<div class="modal-overlay" id="pairing-modal" style="display: none;" onclick="closePairingModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span>DEVICE PAIRING & DISCOVERY</span>
+            <button class="btn btn-icon" onclick="closePairingModal()">✕</button>
+        </div>
+        <div class="modal-body" style="align-items: center; text-align: center;">
+            <div style="font-size: 12px; color: var(--text-secondary);">Scan with phone camera or secondary device:</div>
+            <div style="padding: 10px; background: var(--bg-subtle); border: 1px solid var(--border-default); border-radius: var(--radius-md);">
+                <img id="qr-img" src="/api/pairing/qr" alt="QR" width="160" height="160" style="display: block;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="mono" style="font-size: 12px; color: var(--text-muted);">Pairing Code:</span>
+                <span class="mono" id="modal-pairing-pin" style="font-size: 16px; font-weight: 700; padding: 3px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);">------</span>
+                <button class="btn" onclick="copyPairingLink()">Copy URL</button>
+            </div>
+            <div id="modal-copy-feedback" class="mono" style="font-size: 11px; color: var(--text-muted); min-height: 14px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================================================
+     WORKSPACE SELECTOR MODAL
+     ========================================================================== -->
+<div class="modal-overlay" id="workspace-modal" style="display: none;" onclick="closeWorkspaceModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span>SWITCH WORKSPACE</span>
+            <button class="btn btn-icon" onclick="closeWorkspaceModal()">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 10px;">
+            <div id="modal-ws-list" style="display: flex; flex-direction: column; gap: 4px; max-height: 280px; overflow-y: auto;"></div>
+            <div style="border-top: 1px solid var(--border-subtle); margin-top: 8px; padding-top: 8px;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="promptAddProject()">+ Register New Workspace Path</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Diagnostics Modal -->
-<div class="modal-backdrop" id="doctor-modal" style="display: none;" onclick="closeDoctorModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <div style="font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">ENVIRONMENT DIAGNOSTICS</div>
-            <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="closeDoctorModal()">✕</button>
-        </div>
-        <div class="modal-body" id="doctor-body">
-            <div style="color: var(--text-muted); font-size: 12px;">Running diagnostics...</div>
-        </div>
-    </div>
-</div>
+<div id="toast-container"></div>
 
+<!-- ==========================================================================
+     INTEGRATED APPLICATION LOGIC & DATA WIRING (PHASE 4 & 5)
+     ========================================================================== -->
 <script>
-const frame = document.getElementById('frame');
-const frameContainer = document.getElementById('frame-container');
-const target = document.getElementById('target');
-const logs = document.getElementById('logs');
-const statusPill = document.getElementById('status-pill');
-const statusText = document.getElementById('status-text');
-const wsName = document.getElementById('ws-name');
-const wsBadge = document.getElementById('ws-badge');
-const proxyChip = document.getElementById('proxy-chip');
-const workspaceGrid = document.getElementById('workspace-grid');
+// State Management
+let activeRoute = 'overview';
+let activeDrawerTab = 'term';
+let currentTheme = localStorage.getItem('catalystTheme') || 'dark';
+let currentToken = localStorage.getItem('catalystToken') || '';
+let isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+let isEventBusPaused = false;
+let eventHistory = [];
+let devServerRunning = false;
+let currentTargetURL = '/preview/';
+let ws = null;
 
-let detectedPort = '';
-let currentFilter = 'all';
-let autoReloadEnabled = true;
+// Initialize Theme
+document.documentElement.setAttribute('data-theme', currentTheme);
 
-// Load initial target
-const savedTarget = localStorage.getItem('catalystTarget') || '/preview/';
-target.value = savedTarget;
-
-// ---------------- Fetch Workspace Configuration ----------------
-async function loadConfig() {
-    try {
-        const res = await fetch('/api/config');
-        if (!res.ok) return;
-        const cfg = await res.json();
-        if (cfg.targetUrl && !localStorage.getItem('catalystTarget')) {
-            target.value = cfg.targetUrl;
-        }
-        if (cfg.defaultDevice) {
-            setViewport(cfg.defaultDevice);
-        }
-        if (typeof cfg.autoReload === 'boolean') {
-            autoReloadEnabled = cfg.autoReload;
-        }
-    } catch (err) {
-        console.error('Failed to load config:', err);
-    }
-}
-loadConfig();
-
-// ---------------- Fetch Workspace Metadata ----------------
-async function loadWorkspaceMetadata() {
-    try {
-        const res = await fetch('/api/workspace');
-        if (!res.ok) return;
-        const data = await res.json();
-
-        if (data.name) wsName.innerText = data.name;
-        if (data.framework) {
-            wsBadge.innerText = data.framework;
-        } else if (data.type) {
-            wsBadge.innerText = data.type;
-        }
-
-        if (data.defaultPort) {
-            detectedPort = data.defaultPort;
-            proxyChip.style.display = 'inline-block';
-            proxyChip.innerText = `Proxy :${detectedPort}`;
-        }
-    } catch (err) {
-        console.error('Failed to load workspace metadata:', err);
-    }
-}
-loadWorkspaceMetadata();
-
-// ---------------- Target Navigation ----------------
-function setTarget(url) {
-    target.value = url;
-    localStorage.setItem('catalystTarget', url);
-    reloadFrame();
+function changeTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('catalystTheme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
 }
 
-function setProxyTarget() {
-    if (detectedPort) {
-        setTarget(`/proxy/${detectedPort}/`);
-    }
+function toggleTheme() {
+    changeTheme(currentTheme === 'dark' ? 'light' : 'dark');
 }
 
-target.addEventListener('change', () => {
-    localStorage.setItem('catalystTarget', target.value.trim());
-    reloadFrame();
+// ---------------- Route Navigation ----------------
+function navigateRoute(route) {
+    activeRoute = route;
+    window.location.hash = route;
+
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('href') === '#' + route);
+    });
+
+    document.querySelectorAll('.screen-view').forEach(el => {
+        el.classList.toggle('active', el.id === 'screen-' + route);
+    });
+
+    const routeNames = {
+        'overview': 'Overview',
+        'projects': 'Projects',
+        'ai': 'AI Command Center',
+        'agents': 'Agents',
+        'runtime': 'Runtime Manager',
+        'processes': 'Process Manager',
+        'terminal': 'Terminal',
+        'events': 'Event Bus',
+        'monitoring': 'Monitoring',
+        'plugins': 'Plugins',
+        'network': 'Network Utilities',
+        'settings': 'Settings'
+    };
+
+    document.getElementById('crumb-active-route').innerText = routeNames[route] || route;
+
+    // Trigger on-demand fetches
+    if (route === 'runtime') refreshRuntimeHealth();
+    if (route === 'processes') loadProcesses();
+    if (route === 'projects') loadProjects();
+    if (route === 'plugins') loadPlugins();
+    if (route === 'monitoring') refreshSystemTelemetry();
+    if (route === 'network') refreshNetworkDetails();
+}
+
+window.addEventListener('hashchange', () => {
+    const route = window.location.hash.replace('#', '') || 'overview';
+    navigateRoute(route);
 });
 
-function flashReloadIndicator() {
-    const bar = document.getElementById('reload-bar');
-    if (bar) {
-        bar.classList.add('active');
-        setTimeout(() => bar.classList.remove('active'), 400);
-    }
+// ---------------- Shell Controls ----------------
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
 }
 
-function reloadFrame() {
-    const rawUrl = target.value.trim();
-    if (!rawUrl) return;
+function toggleRightPanel() {
+    document.getElementById('right-panel').classList.toggle('hidden');
+}
 
-    localStorage.setItem('catalystTarget', rawUrl);
+function toggleBottomDrawer() {
+    document.getElementById('bottom-drawer').classList.toggle('collapsed');
+}
 
-    const chromeUrl = document.getElementById('chrome-url-text');
-    if (chromeUrl) chromeUrl.innerText = rawUrl;
+function switchDrawerTab(tab) {
+    activeDrawerTab = tab;
+    document.getElementById('dtab-term').classList.toggle('active', tab === 'term');
+    document.getElementById('dtab-events').classList.toggle('active', tab === 'events');
+    document.getElementById('drawer-view-term').style.display = tab === 'term' ? 'flex' : 'none';
+    document.getElementById('drawer-view-events').style.display = tab === 'events' ? 'block' : 'none';
+}
 
-    // Strip previous cacheBust parameters
-    let cleanUrl = rawUrl.replace(/([?&])_cat=[^&]+(&|$)/g, '$1').replace(/[?&]$/, '');
-    const separator = cleanUrl.includes('?') ? '&' : '?';
-    const cacheBust = `${separator}_cat=${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const targetWithBust = cleanUrl + cacheBust;
+// ---------------- Toast Notifications ----------------
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = 'toast-item';
+    t.innerText = message;
+    container.appendChild(t);
+    setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.2s';
+        setTimeout(() => t.remove(), 200);
+    }, 4000);
+}
 
-    flashReloadIndicator();
+// ---------------- Authentication Guard (MANDATORY REQUIREMENT) ----------------
+async function checkAuthentication() {
+    if (isLocalHost) {
+        document.getElementById('auth-lock-screen').style.display = 'none';
+        return true;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const pin = urlParams.get('pin');
+    if (pin) {
+        const ok = await verifyPin(pin);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (ok) return true;
+    }
+
+    if (currentToken) {
+        try {
+            const res = await fetch(`/api/pairing/verify?token=${encodeURIComponent(currentToken)}`, { method: 'POST' });
+            if (res.ok) {
+                document.getElementById('auth-lock-screen').style.display = 'none';
+                return true;
+            }
+        } catch (e) {}
+    }
+
+    document.getElementById('auth-lock-screen').style.display = 'flex';
+    document.getElementById('pin-0').focus();
+    return false;
+}
+
+async function verifyPin(pin) {
+    const err = document.getElementById('pin-error-msg');
+    err.innerText = '';
+    try {
+        const res = await fetch(`/api/pairing/verify?pin=${encodeURIComponent(pin)}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success && data.token) {
+            currentToken = data.token;
+            localStorage.setItem('catalystToken', data.token);
+            document.getElementById('auth-lock-screen').style.display = 'none';
+            reloadPreviewFrame();
+            return true;
+        } else {
+            err.innerText = data.error || 'Invalid code';
+        }
+    } catch (e) {
+        err.innerText = 'Connection error: ' + e.message;
+    }
+    return false;
+}
+
+function getEnteredPin() {
+    let p = '';
+    for (let i = 0; i < 6; i++) {
+        p += (document.getElementById(`pin-${i}`).value || '').trim();
+    }
+    return p.toUpperCase();
+}
+
+function submitLockPIN() {
+    const p = getEnteredPin();
+    if (p.length === 6) verifyPin(p);
+}
+
+function onPinChar(idx, e) {
+    if (e.target.value && idx < 5) document.getElementById(`pin-${idx + 1}`).focus();
+    if (getEnteredPin().length === 6) submitLockPIN();
+}
+
+function onPinKey(idx, e) {
+    if (e.key === 'Backspace' && !e.target.value && idx > 0) document.getElementById(`pin-${idx - 1}`).focus();
+    if (e.key === 'Enter') submitLockPIN();
+}
+
+// ---------------- Preview Frame & Hard Invalidation ----------------
+function reloadPreviewFrame() {
+    const frame = document.getElementById('preview-frame');
+    const pulse = document.getElementById('reload-pulse-bar');
+    pulse.classList.add('active');
+    setTimeout(() => pulse.classList.remove('active'), 350);
+
+    const separator = currentTargetURL.includes('?') ? '&' : '?';
+    const targetWithBust = `${currentTargetURL}${separator}_cat=${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
     try {
         if (frame.contentWindow && frame.contentWindow.location) {
             frame.contentWindow.location.replace(targetWithBust);
             return;
         }
-    } catch (e) {
-        // Cross-origin fallback
-    }
+    } catch (e) {}
     frame.src = targetWithBust;
 }
 
-// ---------------- Viewport Frame Mode ----------------
-function setViewport(mode) {
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`mode-${mode}`).classList.add('active');
-
+function setDeviceMode(mode) {
+    const container = document.querySelector('.preview-window-frame');
     if (mode === 'mobile') {
-        frameContainer.style.width = '375px';
-        frameContainer.style.height = '667px';
+        container.style.maxWidth = '375px';
+        container.style.margin = '0 auto';
     } else if (mode === 'tablet') {
-        frameContainer.style.width = '768px';
-        frameContainer.style.height = '1024px';
+        container.style.maxWidth = '768px';
+        container.style.margin = '0 auto';
     } else {
-        frameContainer.style.width = '100%';
-        frameContainer.style.height = '100%';
+        container.style.maxWidth = '100%';
+        container.style.margin = '0';
     }
 }
 
-// ---------------- Mobile Tabs ----------------
-function switchView(view) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`tab-${view}`).classList.add('active');
-
-    workspaceGrid.classList.remove('view-preview', 'view-logs');
-    workspaceGrid.classList.add(`view-${view}`);
-}
-
-let activeRightTab = 'files';
-
-function switchRightPane(tab) {
-    activeRightTab = tab;
-    document.getElementById('pane-tab-files').classList.toggle('active', tab === 'files');
-    document.getElementById('pane-tab-proc').classList.toggle('active', tab === 'proc');
-    document.getElementById('pane-tab-asst').classList.toggle('active', tab === 'asst');
-    document.getElementById('view-files').style.display = tab === 'files' ? 'flex' : 'none';
-    document.getElementById('view-proc').style.display = tab === 'proc' ? 'flex' : 'none';
-    document.getElementById('view-asst').style.display = tab === 'asst' ? 'flex' : 'none';
-
-    if (tab === 'asst') {
-        loadAssistantInsights();
-    }
-}
-
-function clearActiveLogs() {
-    if (activeRightTab === 'files') {
-        logs.innerHTML = '';
-    } else if (activeRightTab === 'proc') {
-        const term = document.getElementById('terminal-logs');
-        if (term) term.innerHTML = '<div class="term-line system"><span class="term-time">[SYSTEM]</span> Log cleared.</div>';
-    }
-}
-
-function appendTerminalLine(stream, text, timestamp = '') {
-    const term = document.getElementById('terminal-logs');
-    if (!term) return;
-
-    const time = timestamp || new Date().toLocaleTimeString();
-    const div = document.createElement('div');
-    div.className = `term-line ${stream}`;
-
-    const timeSpan = document.createElement('span');
-    timeSpan.className = 'term-time';
-    timeSpan.innerText = `[${time}]`;
-
-    div.appendChild(timeSpan);
-    div.appendChild(document.createTextNode(' ' + text));
-
-    term.appendChild(div);
-    term.scrollTop = term.scrollHeight; // Auto-scroll to latest
-}
-
-// ---------------- Fetch Existing Processes ----------------
-async function loadProcesses() {
+// ---------------- Data Integration Layers ----------------
+async function loadWorkspaceMetadata() {
     try {
-        const res = await fetch('/api/processes');
+        const res = await fetch('/api/workspace');
         if (!res.ok) return;
-        const procs = await res.json();
-        (procs || []).forEach(p => {
-            (p.logs || []).forEach(l => {
-                appendTerminalLine(l.stream, l.text, new Date(l.timestamp).toLocaleTimeString());
-            });
-        });
-    } catch (err) {
-        console.error('Failed to load processes:', err);
-    }
-}
-loadProcesses();
-
-// ---------------- Logs & Filters ----------------
-function addLogEntry(filename, action = 'write', timestamp = '', impact = null, diff = null) {
-    const div = document.createElement('div');
-    div.className = 'log-entry';
-    div.dataset.action = action;
-
-    const time = timestamp || new Date().toLocaleTimeString();
-    let pillClass = 'pill-write';
-    if (action === 'create') pillClass = 'pill-create';
-    if (action === 'delete') pillClass = 'pill-delete';
-    if (action === 'rename') pillClass = 'pill-rename';
-    if (action === 'system') pillClass = 'pill-system';
-
-    let impactPill = '';
-    let impactDesc = '';
-    if (impact && impact.level) {
-        let impactColor = 'var(--text-muted)';
-        if (impact.level === 'CRITICAL') impactColor = '#EF4444';
-        else if (impact.level === 'HIGH') impactColor = '#F59E0B';
-        else if (impact.level === 'MEDIUM') impactColor = '#3B82F6';
-
-        impactPill = `<span class="log-pill" style="background: rgba(255,255,255,0.06); color: ${impactColor}; font-weight: 700; border: 1px solid ${impactColor};">${impact.level}</span>`;
-        if (impact.affected) {
-            impactDesc = `<div style="font-size: 10px; color: var(--text-muted); margin-top: 3px;">Scope: ${impact.affected}</div>`;
-        }
-    }
-
-    let diffHtml = '';
-    if (diff && (diff.added?.length > 0 || diff.removed?.length > 0 || (diff.summary && diff.summary !== 'File modified'))) {
-        let linesHtml = '';
-        (diff.removed || []).slice(0, 5).forEach(l => {
-            linesHtml += `<div style="color: #F87171; white-space: pre-wrap; word-break: break-all;">- ${l}</div>`;
-        });
-        (diff.added || []).slice(0, 5).forEach(l => {
-            linesHtml += `<div style="color: #34D399; white-space: pre-wrap; word-break: break-all;">+ ${l}</div>`;
-        });
-        diffHtml = `
-            <div style="margin-top: 6px; padding: 6px 8px; background: rgba(0,0,0,0.35); border-radius: 4px; font-family: var(--font-mono); font-size: 10px; line-height: 1.4;">
-                <div style="color: var(--text-muted); font-size: 9px; font-weight: 700; margin-bottom: 3px;">CHANGES (${diff.summary || ''}):</div>
-                ${linesHtml}
-            </div>
-        `;
-    }
-
-    div.innerHTML = `
-        <div class="log-meta">
-            <div style="display: flex; gap: 4px; align-items: center;">
-                <span class="log-pill ${pillClass}">${action}</span>
-                ${impactPill}
-            </div>
-            <span>${time}</span>
-        </div>
-        <div class="log-filename">${filename}</div>
-        ${impactDesc}
-        ${diffHtml}
-    `;
-
-    if (currentFilter !== 'all' && currentFilter !== action) {
-        div.style.display = 'none';
-    }
-
-    logs.prepend(div);
+        const d = await res.json();
+        document.getElementById('active-ws-name').innerText = d.name || 'Workspace';
+        document.getElementById('hero-greeting').innerText = `Good day, ${d.name || 'Developer'}.`;
+        document.getElementById('hero-subtext').innerText = `${d.type || 'Generic'} • ${d.framework || 'Project'} • Port :${d.serverPort || '9999'}`;
+        document.getElementById('net-port-val').innerText = `:${d.serverPort || '9999'}`;
+    } catch (e) {}
 }
 
-function clearLogs() {
-    logs.innerHTML = '';
-}
-
-function setFilter(filter) {
-    currentFilter = filter;
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-
-    if (filter === 'all') document.getElementById('filter-all').classList.add('active');
-    if (filter === 'write') document.getElementById('filter-writes').classList.add('active');
-    if (filter === 'delete') document.getElementById('filter-deletes').classList.add('active');
-
-    document.querySelectorAll('.log-entry').forEach(entry => {
-        const action = entry.dataset.action;
-        if (filter === 'all' || action === filter) {
-            entry.style.display = 'flex';
-        } else {
-            entry.style.display = 'none';
-        }
-    });
-}
-
-// ---------------- WebSocket Connection ----------------
-let ws = null;
-
-function connect() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const token = localStorage.getItem('catalystToken') || '';
-    const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
-
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-        statusPill.className = 'status-pill';
-        statusText.innerText = 'Listening';
-        if (frame.src === 'about:blank') {
-            reloadFrame();
-        }
-    };
-
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'FILE_CHANGED') {
-                const action = data.payload.action || 'write';
-                const file = data.payload.file;
-                const time = data.payload.timestamp;
-                const impact = {
-                    level: data.payload.impact_level,
-                    affected: data.payload.impact_affected,
-                    strategy: data.payload.impact_strategy,
-                    desc: data.payload.impact_desc
-                };
-                const diff = {
-                    summary: data.payload.diff_summary,
-                    added: data.payload.diff_added,
-                    removed: data.payload.diff_removed
-                };
-                addLogEntry(file, action, time, impact, diff);
-                if (autoReloadEnabled) {
-                    reloadFrame();
-                }
-            } else if (data.type === 'CONFIG_UPDATED') {
-                const cfg = data.payload;
-                if (cfg.targetUrl) target.value = cfg.targetUrl;
-                if (cfg.defaultDevice) setViewport(cfg.defaultDevice);
-                if (typeof cfg.autoReload === 'boolean') autoReloadEnabled = cfg.autoReload;
-            } else if (data.type === 'SYSTEM_STATS') {
-                const mem = data.payload.memory;
-                const pill = document.getElementById('system-pill');
-                const ramText = document.getElementById('ram-text');
-                if (pill && ramText && mem && mem.usedPct > 0) {
-                    pill.style.display = 'flex';
-                    ramText.innerText = `RAM: ${mem.usedPct}% (${mem.usedMb}MB)`;
-                }
-            } else if (data.type === 'PROCESS_OUTPUT') {
-                appendTerminalLine(data.payload.stream, data.payload.text, data.payload.timestamp);
-            } else if (data.type === 'PROCESS_STARTED') {
-                appendTerminalLine('system', `Process started: ${data.payload.command} (PID: ${data.payload.pid})`);
-            } else if (data.type === 'PROCESS_STOPPED') {
-                appendTerminalLine('system', `Process stopped (Exit code: ${data.payload.exitCode})`);
-                if (data.payload.exitCode !== 0 && data.payload.exitCode !== null) {
-                    analyzeCurrentError();
-                }
-            } else if (data.type === 'WORKSPACE_CHANGED') {
-                wsName.innerText = data.payload.name;
-                wsBadge.innerText = data.payload.framework || data.payload.type || 'Workspace';
-                addLogEntry(`Switched to workspace: ${data.payload.name}`, 'system');
-                loadWorkspaceMetadata();
-                loadConfig();
-                loadDevScripts();
-                loadPluginActions();
-                reloadFrame();
-            } else if (data.type === 'DEV_SERVER_STATE') {
-                updateDevServerUI(data.payload.running);
-            } else if (data.type === 'SYSTEM_ALERT') {
-                showAlertToast(data.payload.severity, data.payload.message);
-            }
-        } catch (err) {
-            console.error('Invalid WebSocket message:', err);
-        }
-    };
-
-    ws.onclose = () => {
-        statusPill.className = 'status-pill disconnected';
-        statusText.innerText = 'Offline';
-        setTimeout(connect, 2000);
-    };
-
-    ws.onerror = () => {
-        statusPill.className = 'status-pill disconnected';
-        statusText.innerText = 'Error';
-    };
-}
-
-// ---------------- Diagnostics Modal ----------------
-async function openDoctorModal() {
-    const modal = document.getElementById('doctor-modal');
-    const body = document.getElementById('doctor-body');
-    modal.style.display = 'flex';
-    body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Running environment diagnostics...</div>';
-
-    try {
-        const [docRes, sysRes] = await Promise.all([
-            fetch('/api/doctor'),
-            fetch('/api/system')
-        ]);
-        const doc = await docRes.json();
-        const sys = await sysRes.json();
-
-        let html = '';
-
-        // Host overview
-        html += '<div class="diag-section-title">Host Metrics</div>';
-        html += '<div class="diag-grid">';
-        html += `<div class="diag-card"><span class="diag-card-title">OS / Arch</span><span class="diag-card-val">${sys.os || '--'} / ${sys.arch || '--'}</span></div>`;
-        html += `<div class="diag-card"><span class="diag-card-title">CPU Cores</span><span class="diag-card-val">${sys.numCpu || '--'}</span></div>`;
-        html += `<div class="diag-card"><span class="diag-card-title">RAM Usage</span><span class="diag-card-val">${sys.memory?.usedPct || 0}% (${sys.memory?.usedMb || 0} / ${sys.memory?.totalMb || 0} MB)</span></div>`;
-        html += `<div class="diag-card"><span class="diag-card-title">Process Uptime</span><span class="diag-card-val">${sys.uptimeSec || 0}s</span></div>`;
-        html += '</div>';
-
-        // Toolchains
-        html += '<div class="diag-section-title" style="margin-top: 10px;">Toolchains</div>';
-        html += '<div style="display: flex; flex-direction: column; gap: 6px;">';
-        (doc.toolchains || []).forEach(tc => {
-            const mark = tc.installed ? '✓' : '✗';
-            const color = tc.installed ? 'var(--success)' : 'var(--text-muted)';
-            const ver = tc.installed ? tc.version : 'Not installed';
-            html += `<div class="check-item"><span style="font-weight: 600;">${tc.name}</span><span style="color: ${color}; font-family: var(--font-mono); font-size: 11px;">${mark} ${ver}</span></div>`;
-        });
-        html += '</div>';
-
-        // Workspace
-        html += '<div class="diag-section-title" style="margin-top: 10px;">Workspace Health</div>';
-        html += '<div style="display: flex; flex-direction: column; gap: 6px;">';
-        (doc.checks || []).filter(c => c.category === 'workspace').forEach(c => {
-            let color = 'var(--success)';
-            let mark = '✓';
-            if (c.status === 'warning') {
-                color = 'var(--warning)';
-                mark = '!';
-            } else if (c.status === 'error') {
-                color = 'var(--error)';
-                mark = '✗';
-            }
-            html += `<div class="check-item"><span style="font-weight: 600;">${c.name}</span><span style="color: ${color}; font-size: 11px;">${mark} ${c.message}</span></div>`;
-        });
-        html += '</div>';
-
-        body.innerHTML = html;
-    } catch (err) {
-        body.innerHTML = `<div style="color: var(--error); font-size: 12px;">Failed to load diagnostics: ${err.message}</div>`;
-    }
-}
-
-function closeDoctorModal(event) {
-    if (event && event.target !== document.getElementById('doctor-modal') && event.target !== event.currentTarget) {
-        return;
-    }
-    document.getElementById('doctor-modal').style.display = 'none';
-}
-
-// ---------------- Assistant Insights & Error Helper ----------------
-async function loadAssistantInsights() {
-    try {
-        const res = await fetch('/api/assistant/insights');
-        if (!res.ok) return;
-        const insights = await res.json();
-        const container = document.getElementById('asst-insights-list');
-
-        if (insights && insights.length > 0) {
-            let html = '';
-            insights.forEach(ins => {
-                let pillClass = 'pill-create';
-                if (ins.severity === 'warning') pillClass = 'pill-delete';
-                if (ins.severity === 'tip') pillClass = 'pill-rename';
-
-                html += `
-                    <div class="log-entry" style="border-left-color: ${ins.severity === 'warning' ? 'var(--warning)' : 'var(--accent)'};">
-                        <div class="log-meta">
-                            <span class="log-pill ${pillClass}">${ins.severity}</span>
-                            <span style="font-weight: 600;">${ins.title}</span>
-                        </div>
-                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${ins.detail}</div>
-                        ${ins.action ? `<div style="font-size: 11px; color: var(--text-primary); font-weight: 500; margin-top: 6px; background: rgba(255,255,255,0.04); padding: 4px 6px; border-radius: 4px;">👉 ${ins.action}</div>` : ''}
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        } else {
-            container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No configuration issues detected. Workspace looks healthy!</div>';
-        }
-    } catch (err) {
-        console.error('Failed to load insights:', err);
-    }
-}
-
-async function analyzeCurrentError() {
-    const term = document.getElementById('terminal-logs');
-    if (!term) return;
-    const lines = Array.from(term.querySelectorAll('.term-line')).slice(-25).map(el => el.innerText);
-
-    try {
-        const res = await fetch('/api/assistant/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logs: lines })
-        });
-        if (!res.ok) return;
-        const analysis = await res.json();
-
-        if (analysis.matched) {
-            const card = document.getElementById('asst-active-error');
-            const summary = document.getElementById('asst-error-summary');
-            const suggestions = document.getElementById('asst-error-suggestions');
-
-            summary.innerText = analysis.summary;
-            let sugHtml = '';
-            (analysis.suggestions || []).forEach(s => {
-                sugHtml += `
-                    <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px; font-size: 11px;">
-                        <div style="font-weight: 600; color: var(--text-primary);">${s.title}</div>
-                        ${s.command ? `<div style="font-family: var(--font-mono); color: var(--accent); margin-top: 4px; cursor: pointer;" onclick="navigator.clipboard.writeText('${s.command}'); alert('Copied: ${s.command}')">📋 <code>${s.command}</code> (click to copy)</div>` : ''}
-                        ${s.action ? `<div style="color: var(--text-muted); margin-top: 2px;">${s.action}</div>` : ''}
-                    </div>
-                `;
-            });
-            suggestions.innerHTML = sugHtml;
-            card.style.display = 'block';
-
-            // Show alert toast with error summary
-            showAlertToast('critical', `Build Error: ${analysis.summary}`);
-        }
-    } catch (e) {
-        console.error('Failed to analyze error:', e);
-    }
-}
-
-async function requestAIExplanation() {
-    const btn = document.getElementById('asst-ai-btn');
-    const respBox = document.getElementById('asst-ai-response');
-    const summary = document.getElementById('asst-error-summary').innerText;
-
-    const term = document.getElementById('terminal-logs');
-    let logsText = summary;
-    if (term) {
-        logsText = Array.from(term.querySelectorAll('.term-line')).slice(-30).map(el => el.innerText).join('\n');
-    }
-
-    btn.innerText = '✨ Analyzing...';
-    btn.disabled = true;
-
-    try {
-        const res = await fetch('/api/assistant/explain', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logs: logsText })
-        });
-        const data = await res.json();
-
-        if (data.available) {
-            respBox.innerHTML = `<strong>AI Guidance:</strong>\n${data.suggestedFix}`;
-            respBox.style.display = 'block';
-        } else {
-            respBox.innerHTML = `<span style="color: var(--text-muted);">AI explanation unavailable: ${data.error || 'Check local AI gateway'}</span>`;
-            respBox.style.display = 'block';
-        }
-    } catch (e) {
-        respBox.innerHTML = `<span style="color: var(--error);">Error reaching AI service: ${e.message}</span>`;
-        respBox.style.display = 'block';
-    } finally {
-        btn.innerText = '✨ Explain with AI';
-        btn.disabled = false;
-    }
-}
-
-// ---------------- Pairing Modal & Verification ----------------
-let currentPairingPIN = '';
-
-async function loadPairingStatus() {
-    try {
-        const res = await fetch('/api/pairing');
-        if (!res.ok) return;
-        const data = await res.json();
-        currentPairingPIN = data.pin || '';
-        document.getElementById('pairing-pin-display').innerText = currentPairingPIN;
-        document.getElementById('devices-count').innerText = data.devicesCount || 0;
-        document.getElementById('connected-dev-count').innerText = data.devicesCount || 0;
-
-        const list = document.getElementById('devices-list');
-        if (data.devices && data.devices.length > 0) {
-            let html = '';
-            data.devices.forEach(d => {
-                const ua = d.userAgent.split(' ')[0] || 'Unknown Device';
-                const time = new Date(d.connected).toLocaleTimeString();
-                html += `
-                    <div class="check-item">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="dot" style="background: var(--success);"></span>
-                            <div>
-                                <div style="font-weight: 600;">${d.ip}</div>
-                                <div style="font-size: 10px; color: var(--text-muted);">${d.userAgent.substring(0, 40)}...</div>
-                            </div>
-                        </div>
-                        <span style="font-size: 10px; color: var(--text-muted);">${time}</span>
-                    </div>
-                `;
-            });
-            list.innerHTML = html;
-        } else {
-            list.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No secondary devices connected yet.</div>';
-        }
-    } catch (err) {
-        console.error('Failed to load pairing status:', err);
-    }
-}
-loadPairingStatus();
-
-async function openPairingModal() {
-    await loadPairingStatus();
-    await loadRelayStatus();
-    document.getElementById('pairing-modal').style.display = 'flex';
-}
-
-async function loadRelayStatus() {
-    try {
-        const res = await fetch('/api/relay');
-        if (!res.ok) return;
-        const data = await res.json();
-        const pill = document.getElementById('relay-status-pill');
-        const sessionRow = document.getElementById('relay-session-row');
-        const sessionDisplay = document.getElementById('relay-session-display');
-        const form = document.getElementById('relay-connect-form');
-
-        if (data.state === 'connected') {
-            pill.className = 'log-pill pill-write';
-            pill.innerText = 'Connected';
-            sessionRow.style.display = 'flex';
-            sessionDisplay.innerText = data.sessionId || '--';
-            form.style.display = 'none';
-        } else {
-            pill.className = 'log-pill pill-system';
-            pill.innerText = 'Disconnected';
-            sessionRow.style.display = 'none';
-            form.style.display = 'flex';
-        }
-    } catch (e) {
-        console.error('Failed to load relay status:', e);
-    }
-}
-
-async function connectRelayTunnel() {
-    const input = document.getElementById('relay-url-input');
-    const url = input.value.trim();
-    if (!url) return;
-    try {
-        await fetch('/api/relay/connect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ relayUrl: url })
-        });
-        setTimeout(loadRelayStatus, 1000);
-    } catch (e) {
-        console.error('Failed to connect relay tunnel:', e);
-    }
-}
-
-function closePairingModal(event) {
-    if (event && event.target !== document.getElementById('pairing-modal') && event.target !== event.currentTarget) {
-        return;
-    }
-    document.getElementById('pairing-modal').style.display = 'none';
-}
-
-function copyPairingLink() {
-    const link = `${window.location.protocol}//${window.location.host}/?pin=${currentPairingPIN}`;
-    navigator.clipboard.writeText(link).then(() => {
-        const btn = document.getElementById('copy-link-btn');
-        const oldText = btn.innerText;
-        btn.innerText = 'Copied!';
-        setTimeout(() => { btn.innerText = oldText; }, 2000);
-    });
-}
-
-// ---------------- Mandatory Authentication & Pairing System ----------------
-const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-let isAuthenticated = isLocalHost;
-
-async function checkAuthentication() {
-    // 1. Localhost is automatically authenticated
-    if (isLocalHost) {
-        const lock = document.getElementById('auth-lock-screen');
-        if (lock) lock.style.display = 'none';
-        return true;
-    }
-
-    // 2. Check for URL query ?pin=XXXXXX (e.g. from scanning QR code)
-    const urlParams = new URLSearchParams(window.location.search);
-    const pinParam = urlParams.get('pin');
-    if (pinParam) {
-        const ok = await verifyAndUnlock(pinParam);
-        window.history.replaceState({}, document.title, window.location.pathname);
-        if (ok) return true;
-    }
-
-    // 3. Check for existing stored session token
-    const storedToken = localStorage.getItem('catalystToken');
-    if (storedToken) {
-        try {
-            const res = await fetch(`/api/pairing/verify?token=${encodeURIComponent(storedToken)}`, { method: 'POST' });
-            if (res.ok) {
-                const lock = document.getElementById('auth-lock-screen');
-                if (lock) lock.style.display = 'none';
-                isAuthenticated = true;
-                return true;
-            }
-        } catch (e) {}
-    }
-
-    // 4. Lock workspace and prompt for PIN
-    const lock = document.getElementById('auth-lock-screen');
-    if (lock) lock.style.display = 'flex';
-    setTimeout(() => {
-        const p0 = document.getElementById('p-0');
-        if (p0) p0.focus();
-    }, 150);
-    return false;
-}
-
-function getEnteredPIN() {
-    let pin = '';
-    for (let i = 0; i < 6; i++) {
-        const el = document.getElementById(`p-${i}`);
-        if (el) pin += el.value.trim();
-    }
-    return pin.toUpperCase();
-}
-
-async function verifyAndUnlock(pin) {
-    const errBox = document.getElementById('pin-auth-error');
-    const btn = document.getElementById('pin-unlock-btn');
-    if (btn) btn.disabled = true;
-    if (errBox) errBox.innerText = '';
-
-    try {
-        const res = await fetch(`/api/pairing/verify?pin=${encodeURIComponent(pin)}`, { method: 'POST' });
-        const data = await res.json();
-        if (data.success && data.token) {
-            localStorage.setItem('catalystToken', data.token);
-            const lock = document.getElementById('auth-lock-screen');
-            if (lock) lock.style.display = 'none';
-            isAuthenticated = true;
-            reloadFrame();
-            loadPairingStatus();
-            return true;
-        } else {
-            if (errBox) errBox.innerText = data.error || 'Invalid pairing code. Check your primary terminal.';
-            for (let i = 0; i < 6; i++) {
-                const el = document.getElementById(`p-${i}`);
-                if (el) el.value = '';
-            }
-            const p0 = document.getElementById('p-0');
-            if (p0) p0.focus();
-        }
-    } catch (e) {
-        if (errBox) errBox.innerText = 'Error connecting to Catalyst server: ' + e.message;
-    } finally {
-        if (btn) btn.disabled = false;
-    }
-    return false;
-}
-
-function submitEnteredPIN() {
-    const pin = getEnteredPIN();
-    if (pin.length !== 6) {
-        const errBox = document.getElementById('pin-auth-error');
-        if (errBox) errBox.innerText = 'Please enter all 6 characters.';
-        return;
-    }
-    verifyAndUnlock(pin);
-}
-
-function onPinChar(idx, e) {
-    const val = e.target.value;
-    if (val && idx < 5) {
-        const next = document.getElementById(`p-${idx + 1}`);
-        if (next) next.focus();
-    }
-    if (getEnteredPIN().length === 6) {
-        submitEnteredPIN();
-    }
-}
-
-function onPinKey(idx, e) {
-    if (e.key === 'Backspace' && !e.target.value && idx > 0) {
-        const prev = document.getElementById(`p-${idx - 1}`);
-        if (prev) prev.focus();
-    }
-    if (e.key === 'Enter') {
-        submitEnteredPIN();
-    }
-}
-
-checkAuthentication();
-
-// ---------------- Settings Modal ----------------
-async function openSettingsModal() {
-    try {
-        const res = await fetch('/api/config');
-        if (res.ok) {
-            const cfg = await res.json();
-            document.getElementById('cfg-target').value = cfg.targetUrl || '/preview/';
-            document.getElementById('cfg-device').value = cfg.defaultDevice || 'full';
-            document.getElementById('cfg-autoreload').checked = cfg.autoReload !== false;
-            document.getElementById('cfg-ignore').value = (cfg.customIgnore || []).join(', ');
-        }
-    } catch (err) {
-        console.error('Failed to load settings:', err);
-    }
-    document.getElementById('cfg-status-msg').style.display = 'none';
-    document.getElementById('settings-modal').style.display = 'flex';
-}
-
-function closeSettingsModal(event) {
-    if (event && event.target !== document.getElementById('settings-modal') && event.target !== event.currentTarget) {
-        return;
-    }
-    document.getElementById('settings-modal').style.display = 'none';
-}
-
-async function saveSettings() {
-    const targetUrl = document.getElementById('cfg-target').value.trim() || '/preview/';
-    const defaultDevice = document.getElementById('cfg-device').value;
-    const autoReload = document.getElementById('cfg-autoreload').checked;
-    const ignoreRaw = document.getElementById('cfg-ignore').value;
-    const customIgnore = ignoreRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
-
-    const payload = {
-        targetUrl,
-        defaultDevice,
-        autoReload,
-        customIgnore
-    };
-
-    try {
-        const res = await fetch('/api/config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-            autoReloadEnabled = autoReload;
-            target.value = targetUrl;
-            setViewport(defaultDevice);
-            const msg = document.getElementById('cfg-status-msg');
-            msg.style.display = 'inline';
-            setTimeout(() => { msg.style.display = 'none'; }, 2500);
-        }
-    } catch (err) {
-        console.error('Failed to save settings:', err);
-    }
-}
-
-// ---------------- Workspace Switcher ----------------
-async function toggleWorkspaceMenu(event) {
-    if (event) event.stopPropagation();
-    const menu = document.getElementById('ws-menu');
-    const isVisible = menu.style.display === 'block';
-
-    if (isVisible) {
-        menu.style.display = 'none';
-        return;
-    }
-
+async function loadProjects() {
     try {
         const res = await fetch('/api/workspaces');
         if (!res.ok) return;
         const list = await res.json();
-        const container = document.getElementById('ws-menu-list');
 
-        let html = '';
-        (list || []).forEach(w => {
-            const activeClass = w.active ? 'active' : '';
-            const fw = w.project?.framework || w.project?.type || 'Generic';
-            html += `
-                <div class="ws-item ${activeClass}" onclick="switchWorkspace('${w.id}')">
-                    <div>
+        // Populate Overview Table
+        const ovBody = document.querySelector('#overview-projects-table tbody');
+        let ovHtml = '';
+        list.forEach(w => {
+            const statusDot = w.active ? '<span class="status-badge"><span class="status-dot-active"></span>Active</span>' : '<span class="status-badge"><span class="status-dot-idle"></span>Idle</span>';
+            ovHtml += `
+                <tr>
+                    <td><strong>${w.name}</strong></td>
+                    <td class="mono" style="font-size: 11px;">${w.path}</td>
+                    <td>${w.project?.framework || w.project?.type || 'Generic'}</td>
+                    <td>${statusDot}</td>
+                    <td style="text-align: right;">
+                        ${w.active ? '<span class="mono" style="font-size: 11px;">Current</span>' : `<button class="btn" onclick="switchActiveWorkspace('${w.id}')">Switch</button>`}
+                    </td>
+                </tr>
+            `;
+        });
+        ovBody.innerHTML = ovHtml || '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No registered workspaces.</td></tr>';
+
+        // Populate Full Projects Table
+        const fullBody = document.querySelector('#full-projects-table tbody');
+        fullBody.innerHTML = ovHtml;
+
+        // Populate Workspace Modal List
+        const modalList = document.getElementById('modal-ws-list');
+        let mHtml = '';
+        list.forEach(w => {
+            mHtml += `
+                <div class="nav-item ${w.active ? 'active' : ''}" onclick="switchActiveWorkspace('${w.id}')">
+                    <div style="flex: 1;">
                         <div style="font-weight: 600;">${w.name}</div>
-                        <div style="font-size: 10px; color: var(--text-muted);">${w.path}</div>
+                        <div class="mono" style="font-size: 10px; color: var(--text-muted);">${w.path}</div>
                     </div>
-                    <span class="badge" style="font-size: 9px; padding: 1px 5px;">${fw}</span>
+                    <span class="mono" style="font-size: 10px;">${w.project?.framework || ''}</span>
                 </div>
             `;
         });
-        container.innerHTML = html;
-        menu.style.display = 'block';
-    } catch (err) {
-        console.error('Failed to load workspaces:', err);
-    }
+        modalList.innerHTML = mHtml;
+    } catch (e) {}
 }
 
-async function switchWorkspace(id) {
+async function switchActiveWorkspace(id) {
     try {
         const res = await fetch('/api/workspaces/switch', {
             method: 'POST',
@@ -1929,254 +1890,592 @@ async function switchWorkspace(id) {
             body: JSON.stringify({ id })
         });
         if (res.ok) {
-            const wsData = await res.json();
-            wsName.innerText = wsData.name;
-            wsBadge.innerText = wsData.project?.framework || wsData.project?.type || 'Workspace';
-            document.getElementById('ws-menu').style.display = 'none';
-            await loadWorkspaceMetadata();
-            await loadConfig();
-            reloadFrame();
+            closeWorkspaceModal();
+            loadWorkspaceMetadata();
+            loadProjects();
+            reloadPreviewFrame();
+            showToast('Switched active workspace');
         }
-    } catch (err) {
-        console.error('Failed to switch workspace:', err);
-    }
+    } catch (e) {}
 }
 
-async function promptAddWorkspace() {
-    const path = prompt('Enter absolute path to local development project:');
-    if (!path || !path.trim()) return;
-
+async function promptAddProject() {
+    const p = prompt('Enter absolute directory path to local project:');
+    if (!p || !p.trim()) return;
     try {
         const res = await fetch('/api/workspaces', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: path.trim() })
+            body: JSON.stringify({ path: p.trim() })
         });
         if (res.ok) {
-            const newWs = await res.json();
-            await switchWorkspace(newWs.id);
+            const data = await res.json();
+            await switchActiveWorkspace(data.id);
         } else {
-            alert('Failed to add project. Ensure the directory exists on your computer.');
+            alert('Failed: Directory not found on machine.');
         }
-    } catch (err) {
-        alert('Error adding workspace: ' + err.message);
+    } catch (e) {
+        alert('Error: ' + e.message);
     }
 }
 
-document.addEventListener('click', () => {
-    const menu = document.getElementById('ws-menu');
-    if (menu) menu.style.display = 'none';
-});
-
-// ---------------- Dev Server Runner ----------------
-let isDevServerRunning = false;
-
-async function loadDevScripts() {
+// ---------------- Processes & Dev Runner ----------------
+async function loadProcesses() {
     try {
-        const res = await fetch('/api/dev/scripts');
-        if (!res.ok) return;
-        const data = await res.json();
-        const select = document.getElementById('dev-script-select');
-        const bar = document.getElementById('dev-runner-bar');
+        const [procRes, scriptRes] = await Promise.all([
+            fetch('/api/processes'),
+            fetch('/api/dev/scripts')
+        ]);
+        const procs = await procRes.json();
+        const scripts = await scriptRes.json();
 
-        if (data.scripts && data.scripts.length > 0) {
-            select.innerHTML = '';
-            data.scripts.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.name;
-                opt.innerText = `${s.name} (${s.command})`;
-                select.appendChild(opt);
-            });
-            bar.style.display = 'flex';
-        } else {
-            bar.style.display = 'none';
-        }
+        // Populate processes table
+        const tbody = document.querySelector('#processes-table tbody');
+        let html = '';
+        (procs || []).forEach(p => {
+            const isRun = p.state === 'running';
+            html += `
+                <tr>
+                    <td class="mono"><strong>${p.id}</strong></td>
+                    <td class="mono" style="font-size: 11px;">${p.command} ${(p.args||[]).join(' ')}</td>
+                    <td class="mono">${p.pid || '--'}</td>
+                    <td><span class="status-badge">${isRun ? '<span class="status-dot-active"></span>RUNNING' : '<span class="status-dot-idle"></span>STOPPED'}</span></td>
+                    <td class="mono" style="font-size: 11px;">${new Date(p.startedAt).toLocaleTimeString()}</td>
+                    <td style="text-align: right;">
+                        ${isRun ? `<button class="btn" onclick="stopDevServer()">Stop</button>` : `<button class="btn" onclick="triggerDevRun()">Start</button>`}
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No running supervised processes.</td></tr>';
 
-        updateDevServerUI(data.running);
-    } catch (err) {
-        console.error('Failed to load dev scripts:', err);
-    }
-}
-loadDevScripts();
+        // Populate script selector
+        const select = document.getElementById('proc-script-select');
+        select.innerHTML = '';
+        (scripts.scripts || []).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.name;
+            opt.innerText = `${s.name} (${s.command})`;
+            select.appendChild(opt);
+        });
 
-function updateDevServerUI(running) {
-    isDevServerRunning = running;
-    const runBtn = document.getElementById('dev-run-btn');
-    const restartBtn = document.getElementById('dev-restart-btn');
-
-    if (running) {
-        runBtn.innerText = '■ Stop';
-        runBtn.style.background = 'var(--error)';
-        runBtn.style.borderColor = 'var(--error)';
-        restartBtn.style.display = 'inline-flex';
-    } else {
-        runBtn.innerText = '▶ Run';
-        runBtn.style.background = 'var(--accent)';
-        runBtn.style.borderColor = 'var(--accent)';
-        restartBtn.style.display = 'none';
-    }
-}
-
-async function toggleDevServer() {
-    const select = document.getElementById('dev-script-select');
-
-    if (isDevServerRunning) {
-        try {
-            await fetch('/api/dev/stop', { method: 'POST' });
-            updateDevServerUI(false);
-        } catch (err) {
-            console.error('Failed to stop dev server:', err);
-        }
-    } else {
-        const script = select.value;
-        if (!script) return;
-        try {
-            switchRightPane('proc');
-            const res = await fetch('/api/dev/start', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ script })
-            });
-            if (res.ok) {
-                updateDevServerUI(true);
-            }
-        } catch (err) {
-            console.error('Failed to start dev server:', err);
-        }
-    }
+        devServerRunning = scripts.running;
+        const btn = document.getElementById('proc-start-btn');
+        if (btn) btn.innerText = devServerRunning ? '■ Stop' : '▶ Launch';
+    } catch (e) {}
 }
 
-async function restartDevServer() {
+async function triggerDevRun() {
+    const select = document.getElementById('proc-script-select');
+    const script = select ? select.value : 'dev';
+    if (devServerRunning) {
+        await stopDevServer();
+        return;
+    }
     try {
-        switchRightPane('proc');
-        const res = await fetch('/api/dev/restart', { method: 'POST' });
+        const res = await fetch('/api/dev/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ script: script || 'dev' })
+        });
         if (res.ok) {
-            updateDevServerUI(true);
+            devServerRunning = true;
+            loadProcesses();
+            showToast('Started dev server: ' + script);
         }
-    } catch (err) {
-        console.error('Failed to restart dev server:', err);
+    } catch (e) {}
+}
+
+async function stopDevServer() {
+    try {
+        await fetch('/api/dev/stop', { method: 'POST' });
+        devServerRunning = false;
+        loadProcesses();
+        showToast('Dev server stopped');
+    } catch (e) {}
+}
+
+// ---------------- Terminal Output Handling ----------------
+function appendTermRow(stream, text) {
+    const drawerVP = document.getElementById('drawer-term-viewport');
+    const dedVP = document.getElementById('dedicated-terminal-viewport');
+
+    const makeRow = () => {
+        const r = document.createElement('div');
+        r.className = `term-row ${stream}`;
+        r.innerText = text;
+        return r;
+    };
+
+    if (drawerVP) {
+        drawerVP.appendChild(makeRow());
+        drawerVP.scrollTop = drawerVP.scrollHeight;
+    }
+    if (dedVP) {
+        dedVP.appendChild(makeRow());
+        dedVP.scrollTop = dedVP.scrollHeight;
     }
 }
 
-// ---------------- Terminal Interactive Stdin ----------------
-async function sendTermInput() {
-    const input = document.getElementById('term-input');
-    const text = input.value.trim();
-    if (!text) return;
+async function sendDrawerTermInput() {
+    const input = document.getElementById('drawer-term-input');
+    const t = input.value.trim();
+    if (!t) return;
     input.value = '';
+    appendTermRow('stdin', `$ ${t}`);
 
-    // 1. Check if command matches an available project dev script
-    const select = document.getElementById('dev-script-select');
-    const matchedScript = Array.from(select.options || []).find(o => o.value.toLowerCase() === text.toLowerCase());
+    try {
+        await fetch('/api/dev/input', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: t })
+        });
+    } catch (e) {
+        appendTermRow('stderr', e.message);
+    }
+}
 
-    if (matchedScript) {
-        appendTerminalLine('stdin', `$ ${text}`);
-        select.value = matchedScript.value;
-        if (!isDevServerRunning) {
-            toggleDevServer();
+function handleDrawerTermKey(e) {
+    if (e.key === 'Enter') sendDrawerTermInput();
+}
+
+async function sendDedicatedTermInput() {
+    const input = document.getElementById('dedicated-term-input');
+    const t = input.value.trim();
+    if (!t) return;
+    input.value = '';
+    appendTermRow('stdin', `$ ${t}`);
+
+    try {
+        await fetch('/api/dev/input', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: t })
+        });
+    } catch (e) {
+        appendTermRow('stderr', e.message);
+    }
+}
+
+function handleDedicatedTermKey(e) {
+    if (e.key === 'Enter') sendDedicatedTermInput();
+}
+
+function clearTerminalView() {
+    const drawerVP = document.getElementById('drawer-term-viewport');
+    const dedVP = document.getElementById('dedicated-terminal-viewport');
+    if (drawerVP) drawerVP.innerHTML = '<div class="term-row system">[SYSTEM] Buffer cleared.</div>';
+    if (dedVP) dedVP.innerHTML = '<div class="term-row system">[SYSTEM] Buffer cleared.</div>';
+}
+
+function clearActiveDrawerLog() {
+    if (activeDrawerTab === 'term') clearTerminalView();
+    else document.getElementById('drawer-events-stream').innerHTML = '';
+}
+
+// ---------------- AI Diagnostic Center ----------------
+async function submitAIAnalysis() {
+    const input = document.getElementById('ai-input-prompt');
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    const box = document.getElementById('ai-response-box');
+    const content = document.getElementById('ai-response-content');
+    box.style.display = 'flex';
+    content.innerText = 'Analyzing error patterns...';
+
+    try {
+        const res = await fetch('/api/assistant/explain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logs: prompt })
+        });
+        const d = await res.json();
+        if (d.available) {
+            content.innerText = d.suggestedFix;
         } else {
-            restartDevServer();
+            content.innerText = d.error || 'AI gateway unreachable on configured endpoint.';
         }
-        return;
-    }
-
-    // 2. If dev server is running, forward text to process stdin
-    if (isDevServerRunning) {
-        try {
-            const res = await fetch('/api/dev/input', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
-            });
-            if (!res.ok) {
-                appendTerminalLine('stderr', `Input not accepted: dev server may not read stdin.`);
-            }
-        } catch (e) {
-            appendTerminalLine('stderr', `Failed to send input: ${e.message}`);
-        }
-        return;
-    }
-
-    // 3. If no server is running and command is not a recognized script
-    appendTerminalLine('system', `Command '${text}' received. Click '▶ Run' above or select a script from the dropdown to launch.`);
-}
-
-function handleTermKey(event) {
-    if (event.key === 'Enter') {
-        event.preventDefault();
-        sendTermInput();
+    } catch (e) {
+        content.innerText = 'Network error contacting AI assistant: ' + e.message;
     }
 }
 
-// ---------------- Alert Toasts ----------------
-function showAlertToast(severity, message) {
-    const container = document.getElementById('alert-toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `alert-toast ${severity === 'critical' ? 'critical' : ''}`;
-    toast.innerHTML = `
-        <div style="font-size: 14px;">${severity === 'critical' ? '⚠️' : 'ℹ️'}</div>
-        <div style="flex: 1; font-size: 12px; color: var(--text-primary);">${message}</div>
-        <button style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 12px; border-radius: 4px;" onclick="this.parentElement.remove()">✕</button>
-    `;
-
-    container.appendChild(toast);
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.3s';
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 8000);
+function clearAIConsole() {
+    document.getElementById('ai-input-prompt').value = '';
+    document.getElementById('ai-response-box').style.display = 'none';
 }
 
-// ---------------- Plugin Quick Actions ----------------
-async function loadPluginActions() {
+// ---------------- Runtime Manager ----------------
+async function refreshRuntimeHealth() {
+    try {
+        const res = await fetch('/api/doctor');
+        if (!res.ok) return;
+        const d = await res.json();
+
+        // Toolchains
+        const tcBody = document.querySelector('#runtime-toolchains-table tbody');
+        let tcHtml = '';
+        (d.toolchains || []).forEach(tc => {
+            tcHtml += `
+                <tr>
+                    <td><strong>${tc.name}</strong></td>
+                    <td class="mono" style="font-size: 11px;">${tc.version || 'Not installed'}</td>
+                    <td class="mono" style="font-size: 11px; color: var(--text-muted);">${tc.path || '--'}</td>
+                    <td><span class="status-badge">${tc.installed ? '<span class="status-dot-active"></span>AVAILABLE' : '<span class="status-dot-idle"></span>MISSING'}</span></td>
+                </tr>
+            `;
+        });
+        tcBody.innerHTML = tcHtml;
+
+        // Checks
+        const chkBody = document.querySelector('#runtime-checks-table tbody');
+        let chkHtml = '';
+        (d.checks || []).forEach(c => {
+            const badge = c.status === 'ok' ? '<span class="status-badge"><span class="status-dot-active"></span>PASS</span>' : '<span class="status-badge-err">WARN</span>';
+            chkHtml += `
+                <tr>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.message}</td>
+                    <td>${badge}</td>
+                </tr>
+            `;
+        });
+        chkBody.innerHTML = chkHtml;
+    } catch (e) {}
+}
+
+// ---------------- Monitoring & Telemetry ----------------
+async function refreshSystemTelemetry() {
+    try {
+        const res = await fetch('/api/system');
+        if (!res.ok) return;
+        const s = await res.json();
+
+        const pct = s.memory?.usedPct || 0;
+        document.getElementById('mon-ram-pct').innerText = `${pct.toFixed(1)}%`;
+        document.getElementById('mon-ram-detail').innerText = `${s.memory?.usedMb || 0} / ${s.memory?.totalMb || 0} MB`;
+        document.getElementById('mon-ram-bar').style.width = `${pct}%`;
+
+        document.getElementById('mon-cpu-count').innerText = s.numCpu || '--';
+        document.getElementById('mon-cpu-arch').innerText = `${s.os || ''}/${s.arch || ''}`;
+        document.getElementById('mon-uptime').innerText = `${s.uptimeSec || 0}s`;
+        document.getElementById('mon-goroutines').innerText = `Goroutines: ${s.numGoroutine || 0}`;
+
+        // Update Right Panel snippet
+        document.getElementById('rp-ram-label').innerText = `${pct.toFixed(0)}%`;
+        document.getElementById('rp-ram-fill').style.width = `${pct}%`;
+        document.getElementById('rp-cpu-label').innerText = `${s.numCpu || '--'} cores`;
+        document.getElementById('rp-uptime').innerText = `${s.uptimeSec || 0}s`;
+    } catch (e) {}
+}
+
+// ---------------- Plugins ----------------
+async function loadPlugins() {
     try {
         const res = await fetch('/api/plugins');
         if (!res.ok) return;
-        const data = await res.json();
-        const bar = document.getElementById('plugin-actions-bar');
+        const d = await res.json();
 
-        if (data.actions && data.actions.length > 0) {
-            let html = '';
-            data.actions.forEach(a => {
-                const icon = a.icon || '⚡';
-                html += `<button class="btn" style="padding: 3px 8px; font-size: 11px;" onclick="executePluginAction('${a.id}', '${a.name}')" title="${a.description || a.name}">${icon} ${a.name}</button>`;
-            });
-            bar.innerHTML = html;
-            bar.style.display = 'flex';
-        } else {
-            bar.style.display = 'none';
-        }
-    } catch (e) {
-        console.error('Failed to load plugin actions:', e);
-    }
+        const tbody = document.querySelector('#plugins-table tbody');
+        let html = '';
+        (d.actions || []).forEach(a => {
+            html += `
+                <tr>
+                    <td><strong>${a.name}</strong></td>
+                    <td class="mono" style="font-size: 11px;">${a.id}</td>
+                    <td class="mono">${a.command}</td>
+                    <td class="mono" style="font-size: 11px;">${(a.args||[]).join(' ')}</td>
+                    <td style="text-align: right;"><button class="btn" onclick="executePluginAction('${a.id}')">Run</button></td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No custom actions in .catalyst/plugins.json</td></tr>';
+    } catch (e) {}
 }
-loadPluginActions();
 
-async function executePluginAction(actionId, actionName) {
+async function executePluginAction(actionId) {
     try {
-        switchRightPane('proc');
         const res = await fetch('/api/plugins/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ actionId })
         });
+        if (res.ok) showToast('Triggered plugin action: ' + actionId);
+    } catch (e) {}
+}
+
+// ---------------- Network & Pairing ----------------
+async function refreshNetworkDetails() {
+    try {
+        const [pairRes, relayRes] = await Promise.all([
+            fetch('/api/pairing'),
+            fetch('/api/relay')
+        ]);
+        const p = await pairRes.json();
+        const r = await relayRes.json();
+
+        document.getElementById('net-pin-val').innerText = p.pin || '------';
+        document.getElementById('modal-pairing-pin').innerText = p.pin || '------';
+
+        document.getElementById('net-relay-status').innerText = r.state || 'Disconnected';
+        document.getElementById('net-relay-url').innerText = r.relayUrl || 'None configured';
+
+        const tbody = document.querySelector('#network-devices-table tbody');
+        let html = '';
+        (p.devices || []).forEach(dev => {
+            html += `
+                <tr>
+                    <td class="mono">${dev.ip}</td>
+                    <td>${dev.userAgent}</td>
+                    <td class="mono" style="font-size: 11px;">${new Date(dev.connected).toLocaleTimeString()}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No secondary devices connected</td></tr>';
+    } catch (e) {}
+}
+
+function copyPairingLink() {
+    const pin = document.getElementById('modal-pairing-pin').innerText;
+    const link = `${window.location.protocol}//${window.location.host}/?pin=${pin}`;
+    navigator.clipboard.writeText(link).then(() => {
+        document.getElementById('modal-copy-feedback').innerText = 'Copied to clipboard!';
+        setTimeout(() => document.getElementById('modal-copy-feedback').innerText = '', 2000);
+    });
+}
+
+function openPairingModal() {
+    refreshNetworkDetails();
+    document.getElementById('pairing-modal').style.display = 'flex';
+}
+
+function closePairingModal() {
+    document.getElementById('pairing-modal').style.display = 'none';
+}
+
+function openWorkspaceModal() {
+    loadProjects();
+    document.getElementById('workspace-modal').style.display = 'flex';
+}
+
+function closeWorkspaceModal() {
+    document.getElementById('workspace-modal').style.display = 'none';
+}
+
+// ---------------- Settings Form Persistence ----------------
+async function loadSettingsForm() {
+    try {
+        const res = await fetch('/api/config');
+        if (!res.ok) return;
+        const c = await res.json();
+        document.getElementById('cfg-theme-select').value = c.theme || currentTheme;
+        document.getElementById('cfg-target-input').value = c.targetUrl || '/preview/';
+        document.getElementById('cfg-ignore-input').value = (c.customIgnore || []).join(', ');
+        document.getElementById('cfg-autoreload-chk').checked = c.autoReload !== false;
+        currentTargetURL = c.targetUrl || '/preview/';
+        document.getElementById('preview-url-label').innerText = currentTargetURL;
+    } catch (e) {}
+}
+
+async function saveSettingsForm() {
+    const targetUrl = document.getElementById('cfg-target-input').value.trim() || '/preview/';
+    const theme = document.getElementById('cfg-theme-select').value;
+    const autoReload = document.getElementById('cfg-autoreload-chk').checked;
+    const ignoreStr = document.getElementById('cfg-ignore-input').value;
+    const customIgnore = ignoreStr.split(',').map(s => s.trim()).filter(Boolean);
+
+    try {
+        const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetUrl, theme, autoReload, customIgnore })
+        });
         if (res.ok) {
-            showAlertToast('info', `Running action: ${actionName}`);
+            currentTargetURL = targetUrl;
+            document.getElementById('preview-url-label').innerText = targetUrl;
+            changeTheme(theme);
+            reloadPreviewFrame();
+            showToast('Workspace settings saved');
         }
-    } catch (e) {
-        console.error('Failed to execute action:', e);
+    } catch (e) {}
+}
+
+// ---------------- Event Bus & WebSocket Integration (PHASE 4.7) ----------------
+function appendEventBusRow(type, summary, payload) {
+    eventHistory.unshift({ type, summary, payload, time: new Date() });
+    if (eventHistory.length > 200) eventHistory.pop();
+
+    document.getElementById('rp-event-count').innerText = eventHistory.length;
+
+    // Update Right Panel Activity Stream
+    const stream = document.getElementById('rp-activity-stream');
+    const item = document.createElement('div');
+    item.className = 'nav-item';
+    item.style.padding = '6px 8px';
+    item.innerHTML = `
+        <span class="mono" style="font-size: 10px; color: var(--text-muted);">${new Date().toLocaleTimeString()}</span>
+        <span style="font-size: 11px; font-weight: 600; color: var(--text-primary);">${type}</span>
+    `;
+    stream.prepend(item);
+    if (stream.children.length > 20) stream.lastElementChild.remove();
+
+    if (isEventBusPaused) return;
+
+    // Update Full Events Table
+    const tbody = document.querySelector('#events-table tbody');
+    if (tbody) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="mono" style="font-size: 11px;">${new Date().toLocaleTimeString()}</td>
+            <td><span class="status-badge"><span class="status-dot-active"></span>${type}</span></td>
+            <td>${summary}</td>
+            <td style="text-align: right;"><button class="btn" onclick='alert(JSON.stringify(${JSON.stringify(payload)}, null, 2))'>Inspect</button></td>
+        `;
+        tbody.prepend(tr);
+        if (tbody.children.length > 50) tbody.lastElementChild.remove();
     }
 }
 
-connect();
-</script>
+function toggleEventBusPause() {
+    isEventBusPaused = !isEventBusPaused;
+    document.getElementById('event-pause-btn').innerText = isEventBusPaused ? 'Resume Stream' : 'Pause Stream';
+}
 
-<!-- Alert Toast Container -->
-<div id="alert-toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px;"></div>
+function clearEventBusLogs() {
+    eventHistory = [];
+    const tbody = document.querySelector('#events-table tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Event buffer cleared.</td></tr>';
+}
+
+// ---------------- Command Palette (⌘K) ----------------
+const paletteCommands = [
+    { title: 'Navigate: Overview', action: () => navigateRoute('overview') },
+    { title: 'Navigate: Projects', action: () => navigateRoute('projects') },
+    { title: 'Navigate: AI Command Center', action: () => navigateRoute('ai') },
+    { title: 'Navigate: Runtime Manager', action: () => navigateRoute('runtime') },
+    { title: 'Navigate: Process Manager', action: () => navigateRoute('processes') },
+    { title: 'Navigate: Terminal', action: () => navigateRoute('terminal') },
+    { title: 'Navigate: Event Bus', action: () => navigateRoute('events') },
+    { title: 'Navigate: Monitoring', action: () => navigateRoute('monitoring') },
+    { title: 'Navigate: Plugins', action: () => navigateRoute('plugins') },
+    { title: 'Navigate: Network Utilities', action: () => navigateRoute('network') },
+    { title: 'Navigate: Settings', action: () => navigateRoute('settings') },
+    { title: 'Action: Run Dev Server', action: triggerDevRun },
+    { title: 'Action: Stop Dev Server', action: stopDevServer },
+    { title: 'Action: Reload Preview Frame', action: reloadPreviewFrame },
+    { title: 'Action: Pair Secondary Device', action: openPairingModal },
+    { title: 'Action: Toggle Light/Dark Theme', action: toggleTheme }
+];
+
+function openCommandPalette() {
+    document.getElementById('command-palette-modal').style.display = 'flex';
+    document.getElementById('palette-search-input').value = '';
+    filterPalette('');
+    document.getElementById('palette-search-input').focus();
+}
+
+function closeCommandPalette(e) {
+    document.getElementById('command-palette-modal').style.display = 'none';
+}
+
+function filterPalette(q) {
+    const list = document.getElementById('palette-results-list');
+    const filtered = paletteCommands.filter(c => c.title.toLowerCase().includes(q.toLowerCase()));
+    let html = '';
+    filtered.forEach((c, i) => {
+        html += `<div class="palette-item" onclick="executePaletteCmd(${i})"><span>${c.title}</span><span class="kbd-hint">↵</span></div>`;
+    });
+    list.innerHTML = html;
+}
+
+function executePaletteCmd(idx) {
+    closeCommandPalette();
+    if (paletteCommands[idx]) paletteCommands[idx].action();
+}
+
+function handlePaletteKey(e) {
+    if (e.key === 'Escape') closeCommandPalette();
+    if (e.key === 'Enter') {
+        const first = document.querySelector('.palette-item');
+        if (first) first.click();
+    }
+}
+
+// Global Keyboard Shortcuts (⌘B, ⌘J, ⌘K)
+document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault();
+        toggleBottomDrawer();
+    }
+});
+
+// ---------------- WebSocket Core Connection ----------------
+function initWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const tok = localStorage.getItem('catalystToken') || '';
+    const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(tok)}`;
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        document.getElementById('live-status-text').innerText = 'LISTENING';
+        document.getElementById('live-dot').className = 'status-dot-active';
+        reloadPreviewFrame();
+    };
+
+    ws.onmessage = (e) => {
+        try {
+            const data = JSON.parse(e.data);
+            appendEventBusRow(data.type, JSON.stringify(data.payload).substring(0, 80), data.payload);
+
+            if (data.type === 'FILE_CHANGED') {
+                reloadPreviewFrame();
+            } else if (data.type === 'PROCESS_OUTPUT') {
+                appendTermRow(data.payload.stream, data.payload.text);
+            } else if (data.type === 'DEV_SERVER_STATE') {
+                devServerRunning = data.payload.running;
+                const btn = document.getElementById('proc-start-btn');
+                if (btn) btn.innerText = devServerRunning ? '■ Stop' : '▶ Launch';
+            } else if (data.type === 'SYSTEM_STATS') {
+                refreshSystemTelemetry();
+            } else if (data.type === 'WORKSPACE_CHANGED') {
+                loadWorkspaceMetadata();
+                loadProjects();
+                reloadPreviewFrame();
+                showToast('Switched to: ' + data.payload.name);
+            }
+        } catch (err) {}
+    };
+
+    ws.onclose = () => {
+        document.getElementById('live-status-text').innerText = 'OFFLINE';
+        document.getElementById('live-dot').className = 'status-dot-idle';
+        setTimeout(initWebSocket, 2000);
+    };
+}
+
+// ---------------- Initial Boot ----------------
+(async function bootCatalyst() {
+    const authOk = await checkAuthentication();
+    if (!authOk) return;
+
+    loadWorkspaceMetadata();
+    loadSettingsForm();
+    loadProjects();
+    loadProcesses();
+    refreshSystemTelemetry();
+    initWebSocket();
+})();
+</script>
 
 </body>
 </html>
