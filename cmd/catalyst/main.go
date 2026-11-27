@@ -141,12 +141,17 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
+		var lastAlertTime time.Time
 		for range ticker.C {
 			if hub.ClientCount() > 0 {
 				stats := monitor.GetStats()
 				hub.Broadcast("SYSTEM_STATS", stats)
-				if alerts := monitor.CheckAlerts(stats, 85.0); len(alerts) > 0 {
-					hub.Broadcast("SYSTEM_ALERT", alerts[0])
+				// Only alert if RAM >= 92% and at least 5 minutes have elapsed since last alert
+				if time.Since(lastAlertTime) > 5*time.Minute {
+					if alerts := monitor.CheckAlerts(stats, 92.0); len(alerts) > 0 {
+						hub.Broadcast("SYSTEM_ALERT", alerts[0])
+						lastAlertTime = time.Now()
+					}
 				}
 			}
 		}

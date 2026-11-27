@@ -2042,15 +2042,40 @@ async function sendTermInput() {
     if (!text) return;
     input.value = '';
 
-    try {
-        await fetch('/api/dev/input', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text })
-        });
-    } catch (e) {
-        console.error('Failed to send terminal input:', e);
+    // 1. Check if command matches an available project dev script
+    const select = document.getElementById('dev-script-select');
+    const matchedScript = Array.from(select.options || []).find(o => o.value.toLowerCase() === text.toLowerCase());
+
+    if (matchedScript) {
+        appendTerminalLine('stdin', `$ ${text}`);
+        select.value = matchedScript.value;
+        if (!isDevServerRunning) {
+            toggleDevServer();
+        } else {
+            restartDevServer();
+        }
+        return;
     }
+
+    // 2. If dev server is running, forward text to process stdin
+    if (isDevServerRunning) {
+        try {
+            const res = await fetch('/api/dev/input', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            if (!res.ok) {
+                appendTerminalLine('stderr', `Input not accepted: dev server may not read stdin.`);
+            }
+        } catch (e) {
+            appendTerminalLine('stderr', `Failed to send input: ${e.message}`);
+        }
+        return;
+    }
+
+    // 3. If no server is running and command is not a recognized script
+    appendTerminalLine('system', `Command '${text}' received. Click '▶ Run' above or select a script from the dropdown to launch.`);
 }
 
 function handleTermKey(event) {
@@ -2069,15 +2094,18 @@ function showAlertToast(severity, message) {
     toast.className = `alert-toast ${severity === 'critical' ? 'critical' : ''}`;
     toast.innerHTML = `
         <div style="font-size: 14px;">${severity === 'critical' ? '⚠️' : 'ℹ️'}</div>
-        <div style="flex: 1;">${message}</div>
+        <div style="flex: 1; font-size: 12px; color: var(--text-primary);">${message}</div>
+        <button style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 12px; border-radius: 4px;" onclick="this.parentElement.remove()">✕</button>
     `;
 
     container.appendChild(toast);
     setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.3s';
-        setTimeout(() => toast.remove(), 300);
-    }, 6000);
+        if (toast.parentElement) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 8000);
 }
 
 // ---------------- Plugin Quick Actions ----------------
