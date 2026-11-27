@@ -1237,7 +1237,7 @@ async function loadProcesses() {
 loadProcesses();
 
 // ---------------- Logs & Filters ----------------
-function addLogEntry(filename, action = 'write', timestamp = '', impact = null) {
+function addLogEntry(filename, action = 'write', timestamp = '', impact = null, diff = null) {
     const div = document.createElement('div');
     div.className = 'log-entry';
     div.dataset.action = action;
@@ -1263,6 +1263,23 @@ function addLogEntry(filename, action = 'write', timestamp = '', impact = null) 
         }
     }
 
+    let diffHtml = '';
+    if (diff && (diff.added?.length > 0 || diff.removed?.length > 0 || (diff.summary && diff.summary !== 'File modified'))) {
+        let linesHtml = '';
+        (diff.removed || []).slice(0, 5).forEach(l => {
+            linesHtml += `<div style="color: #F87171; white-space: pre-wrap; word-break: break-all;">- ${l}</div>`;
+        });
+        (diff.added || []).slice(0, 5).forEach(l => {
+            linesHtml += `<div style="color: #34D399; white-space: pre-wrap; word-break: break-all;">+ ${l}</div>`;
+        });
+        diffHtml = `
+            <div style="margin-top: 6px; padding: 6px 8px; background: rgba(0,0,0,0.35); border-radius: 4px; font-family: var(--font-mono); font-size: 10px; line-height: 1.4;">
+                <div style="color: var(--text-muted); font-size: 9px; font-weight: 700; margin-bottom: 3px;">CHANGES (${diff.summary || ''}):</div>
+                ${linesHtml}
+            </div>
+        `;
+    }
+
     div.innerHTML = `
         <div class="log-meta">
             <div style="display: flex; gap: 4px; align-items: center;">
@@ -1273,6 +1290,7 @@ function addLogEntry(filename, action = 'write', timestamp = '', impact = null) 
         </div>
         <div class="log-filename">${filename}</div>
         ${impactDesc}
+        ${diffHtml}
     `;
 
     if (currentFilter !== 'all' && currentFilter !== action) {
@@ -1335,7 +1353,12 @@ function connect() {
                     strategy: data.payload.impact_strategy,
                     desc: data.payload.impact_desc
                 };
-                addLogEntry(file, action, time, impact);
+                const diff = {
+                    summary: data.payload.diff_summary,
+                    added: data.payload.diff_added,
+                    removed: data.payload.diff_removed
+                };
+                addLogEntry(file, action, time, impact, diff);
                 if (autoReloadEnabled) {
                     reloadFrame();
                 }

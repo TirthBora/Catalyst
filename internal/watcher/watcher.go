@@ -29,6 +29,7 @@ type Watcher struct {
 	hub          *websocket.Hub
 	rootPath     string
 	customIgnore []string
+	diffTracker  *analyzer.DiffTracker
 	mu           sync.Mutex
 	timers       map[string]*time.Timer
 }
@@ -46,10 +47,11 @@ func NewWatcher(rootPath string, hub *websocket.Hub) (*Watcher, error) {
 	}
 
 	return &Watcher{
-		fsWatcher: fsw,
-		hub:       hub,
-		rootPath:  rootPath,
-		timers:    make(map[string]*time.Timer),
+		fsWatcher:    fsw,
+		hub:          hub,
+		rootPath:     rootPath,
+		diffTracker:  analyzer.NewDiffTracker(),
+		timers:       make(map[string]*time.Timer),
 	}, nil
 }
 
@@ -168,7 +170,8 @@ func (w *Watcher) debounceEmit(filename, action string) {
 			relPath = filename
 		}
 		impact := analyzer.EvaluateChange(relPath)
-		log.Printf(" File Changed [%s|%s]: %s (%s)\n", action, impact.Level, relPath, impact.Affected)
+		diff := w.diffTracker.ComputeDiff(filename)
+		log.Printf(" File Changed [%s|%s]: %s (%s | %s)\n", action, impact.Level, relPath, impact.Affected, diff.Summary)
 		w.hub.Broadcast("FILE_CHANGED", map[string]interface{}{
 			"file":            relPath,
 			"action":          action,
@@ -176,6 +179,9 @@ func (w *Watcher) debounceEmit(filename, action string) {
 			"impact_affected": impact.Affected,
 			"impact_strategy": impact.Strategy,
 			"impact_desc":     impact.Description,
+			"diff_summary":    diff.Summary,
+			"diff_added":      diff.Added,
+			"diff_removed":    diff.Removed,
 			"timestamp":       time.Now().Format("15:04:05"),
 		})
 	})
